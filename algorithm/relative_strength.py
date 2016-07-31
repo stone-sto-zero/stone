@@ -1,6 +1,8 @@
 #! encoding:utf-8
 import datetime
 
+import math
+
 from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from data.back_result import DBResult
@@ -121,6 +123,10 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     # 作图相关的值, 暂时只需要上证和account
     chart_account_divider = s01[0] * 100 / account.property
     chart_account_value = list()
+    # 描述增长率
+    chart_account_k250_value = list()
+    chart_account_k60_value = list()
+    chart_account_k30_value = list()
     chart_s01_value = list()
     import os
     chart_output_dir = os.path.join(os.path.dirname(__file__), '../result/relative_strength')
@@ -153,6 +159,37 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
             if not np.isnan(tem_rows.loc[date_str, stock_name]):
                 account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
         chart_account_value.append(account.property * chart_account_divider / 100)
+
+        # 描述增长率, 250日增长率, 10000倍放大, 查看效果
+        if len(chart_account_value) > 250:
+            log_with_filename(chart_title, 'k250 : ' + str(
+                (account.property / chart_account_value[-250] / 100 * chart_account_divider - 1) * 10000))
+            chart_account_k250_value.append(
+                (account.property / chart_account_value[-250] / 100 * chart_account_divider - 1) * 10000)
+        else:
+            log_with_filename(chart_title, 'k250 : 0')
+            chart_account_k250_value.append(0)
+
+        # 描述增长率, 60日增长率, 10000倍放大, 查看效果
+        if len(chart_account_value) > 60:
+            log_with_filename(chart_title, 'k60 : ' + str(
+                (account.property / chart_account_value[-60] / 100 * chart_account_divider - 1) * 10000))
+            chart_account_k60_value.append(
+                (account.property / chart_account_value[-60] / 100 * chart_account_divider - 1) * 10000)
+        else:
+            log_with_filename(chart_title, 'k60 : 0')
+            chart_account_k60_value.append(0)
+
+        # 描述增长率, 30日增长率, 10000倍放大, 查看效果
+
+        if len(chart_account_value) > 30:
+            log_with_filename(chart_title, 'k30 : ' + str(
+                (account.property / chart_account_value[-30] / 100 * chart_account_divider - 1) * 10000))
+            chart_account_k30_value.append(
+                (account.property / chart_account_value[-30] / 100 * chart_account_divider - 1) * 10000)
+        else:
+            log_with_filename(chart_title, 'k30 : 0')
+            chart_account_k30_value.append(0)
 
         # 计算回撤
         if account.property > max_property:
@@ -276,7 +313,9 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         log_with_filename(chart_title, account.returns)
 
     chart_file_name = 'returns_%f_maxdd_%f' % (account.returns, max_dd)
-    draw_line_chart(date_list, [chart_s01_value, chart_account_value], ['s01', 'account'], default_colors[:2],
+    draw_line_chart(date_list, [chart_s01_value, chart_account_value, chart_account_k250_value, chart_account_k60_value,
+                                chart_account_k30_value],
+                    ['s01', 'account', 'k250', 'k60', 'k30'], default_colors[:5],
                     chart_file_name, title=chart_title, output_dir=chart_output_dir)
     log_with_filename(chart_title, account)
     log_with_filename(chart_title, account.returns)
@@ -287,18 +326,22 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 if __name__ == '__main__':
     pass
     # 执行回测, 先注释掉, 跑结果统计
-    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    # denominator_list =[8, 2]
+    # win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    # lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    #
+    # # 做个修补
+    # for win_percent in win_percent_list:
+    #     for lose_percent in lose_percent_list:
+    #         for denominator in denominator_list:
+    #             relative_strength_monentum(denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
+    #                                        rank_percent=0.38)
 
-    # 做个修补
-    win_percent_list = win_percent_list[3:5]
-    lose_percent_list = lose_percent_list[3:5]
-    for win_percent in win_percent_list:
-        for lose_percent in lose_percent_list:
-            relative_strength_monentum(denominator=5, win_percent=win_percent, lose_percent=lose_percent,
-                                       rank_percent=0.38)
+    # debug专用
+    # relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
+
     # 统计
-    # res_statistic()
+    res_statistic()
 
     # 测试
     # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
