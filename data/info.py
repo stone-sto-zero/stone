@@ -6,10 +6,12 @@ from datetime import date, time
 
 import sqlite3
 
+from config import config
 from data.db.db_helper import DBYahooDay
 from data.info_utils import average, build_stock_data_frame
 import pandas as pd
 import numpy as np
+import os
 
 
 class DBInfoCache(object):
@@ -19,7 +21,7 @@ class DBInfoCache(object):
     用get直接从数据库中取出来, 应该比一下下merge要快得多
     fix的DataFrame是40m, 估计其他的也差不多这个规模
     """
-    db_file_path = '/Users/wgx/workspace/data/cache_db.db'
+    db_file_path = os.path.join(config.db_root_path, 'cache_db.db')
     table_name_fix_part1 = 'fix_part1'
     table_name_fix_part2 = 'fix_part2'
     table_name_fix_part3 = 'fix_part3'

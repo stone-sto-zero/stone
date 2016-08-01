@@ -2,14 +2,17 @@
 import datetime
 
 import math
+import random
 
 from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
+from config import config
 from data.back_result import DBResult
 from data.info import DBInfoCache
 import numpy as np
 import pandas as pd
 
+from log import time_utils
 from log.log_utils import log_with_filename
 
 
@@ -39,6 +42,7 @@ def res_statistic():
             losepercent = params[15]
             rankposition = params[17] if params[17].strip() != 'None' else '-1'
             rankpercent = params[19]
+            run_tag = params[20]
 
             # 然后是读出结果, 包含returns和maxdd
             block_size = '4096'
@@ -58,7 +62,7 @@ def res_statistic():
 
                 result_tuple = (
                     denominator, malength, temlength, reweightperiod, winpercent, needups01, sellafterwieght,
-                    losepercent, rankposition, rankpercent, maxdd, returns,
+                    losepercent, rankposition, rankpercent, maxdd, returns, run_tag,
                 )
                 print result_tuple
                 result_db.cursor.execute('insert into %s (%s)values(%s)' % (
@@ -101,6 +105,8 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     :type denominator: int
     """
     time_before = datetime.datetime.now()
+    run_tag = 'relative_strength_' + time_before.strftime(time_utils.datetime_log_format) + '_' + str(
+        random.randint(1000, 9999))
     fix_frame = DBInfoCache().get_fix()
 
     # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
@@ -111,7 +117,8 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     date_list = fix_frame.index.values
 
     # 账户
-    account = MoneyAccount(1000000, repo_count=denominator)
+    account = MoneyAccount(1000000, run_tag, repo_count=denominator)
+    account.open()
 
     # st list
     stock_names = fix_frame.columns.values
@@ -129,16 +136,16 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     chart_account_k30_value = list()
     chart_s01_value = list()
     import os
-    chart_output_dir = os.path.join(os.path.dirname(__file__), '../result/relative_strength')
+    chart_output_dir = os.path.join(config.png_root_path, 'relative_strength')
     if not os.path.exists(chart_output_dir):
         os.system('mkdir -p ' + chart_output_dir)
 
     # 搞定存图片的文件夹, 这次系统一点, 都保存下来, 用参数命名, 用收益/回撤做标题
-    chart_title = 'denominator_%s_malength_%s_temlength_%s_reweightperiod_%s_winpercent_%s_' \
-                  'needups01_%s_sellafterreweight_%s_losepercent_%s_rankposition_%s_rankpercent_%s' % (
+    chart_title = 'de_%s_ma_%s_tem_%s_re_%s_win_%s_' \
+                  'ups01_%s_sewei_%s_los_%s_rpo_%s_rpc_%s_%s' % (
                       str(denominator), str(ma_length), str(tem_length), str(reweight_period), str(win_percent),
                       str(need_up_s01), str(sell_after_reweight), str(lose_percent), str(rank_position),
-                      str(rank_percent))
+                      str(rank_percent), run_tag)
 
     # reweight的计数
     reweight_count = 0
@@ -312,11 +319,36 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 
         log_with_filename(chart_title, account.returns)
 
-    chart_file_name = 'returns_%f_maxdd_%f' % (account.returns, max_dd)
+    # 关闭account
+    account.close()
+
+    # 写DBResult数据库
+    result_db = DBResult()
+    result_db.open()
+    if not reweight_period:
+        reweight_period = -1
+    if not rank_position:
+        rank_position = -1
+    if not rank_percent:
+        rank_percent = -1
+    need_up = 1 if need_up_s01 else 0
+    sell_after = 1 if sell_after_reweight else 0
+    result_db.cursor.execute('insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, "%s", %f, %f)' % (
+        result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
+        denominator, ma_length, tem_length, reweight_period, win_percent, need_up, sell_after,
+        lose_percent, rank_position, rank_percent, run_tag, max_dd, account.returns
+    ))
+    result_db.connection.commit()
+    result_db.close()
+
+    # 表格相关
+    chart_file_name = 'returns_%f_maxdd_%f_%s' % (account.returns, max_dd, run_tag)
     draw_line_chart(date_list, [chart_s01_value, chart_account_value, chart_account_k250_value, chart_account_k60_value,
                                 chart_account_k30_value],
                     ['s01', 'account', 'k250', 'k60', 'k30'], default_colors[:5],
                     chart_file_name, title=chart_title, output_dir=chart_output_dir)
+
+    # 写log
     log_with_filename(chart_title, account)
     log_with_filename(chart_title, account.returns)
     log_with_filename(chart_title, 'max dd' + str(max_dd))
@@ -338,10 +370,10 @@ if __name__ == '__main__':
     #                                        rank_percent=0.38)
 
     # debug专用
-    # relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
+    relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
 
     # 统计
-    res_statistic()
+    # res_statistic()
 
     # 测试
     # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,

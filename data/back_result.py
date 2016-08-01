@@ -1,12 +1,15 @@
 #! encoding:utf-8
 import sqlite3
+import os
+
+from config import config
 
 
 class DBResult(object):
     """
     这里放回测的结果数据
     """
-    _db_path = '/Users/wgx/workspace/data/result_db.db'
+    _db_path = os.path.join(config.db_root_path, 'result_db.db')
     table_relative_strength_zero = 'relative_strength_zero'
 
     line_id = 'id'
@@ -20,6 +23,7 @@ class DBResult(object):
     line_losepercent = 'losepercent'
     line_rankposition = 'rankposition'
     line_rankpercent = 'rankpercent'
+    line_run_tag = 'run_tag'
 
     line_maxdd = 'maxdd'
     line_returns = 'returns'
@@ -35,6 +39,7 @@ class DBResult(object):
         line_losepercent,
         line_rankposition,
         line_rankpercent,
+        line_run_tag,
         line_maxdd,
         line_returns,
     )
@@ -68,6 +73,7 @@ class DBResult(object):
             self.line_losepercent + ' double',
             self.line_rankposition + ' integer',
             self.line_rankpercent + ' double',
+            self.line_run_tag + ' varchar(50)',
             self.line_maxdd + ' double',
             self.line_returns + ' double',
         )

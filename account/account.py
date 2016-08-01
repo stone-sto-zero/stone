@@ -2,8 +2,12 @@
 
 # 这里管账户的相关信息
 # 账户管钱和持仓的变化, 定义明确参数, 注释表明具体是什么意思
+import os
 from datetime import date, datetime, time
 
+import sqlite3
+
+from config import config
 from data.db.db_helper import DBYahooDay
 from data.info import Infos
 from log import time_utils
@@ -268,7 +272,7 @@ class MoneyAccount(object):
     在infos的上层
     """
 
-    def __init__(self, cash, returns=0.0, repo_count=1):
+    def __init__(self, cash, run_tag, returns=0.0, repo_count=1):
         """
         :param cash: 本金
         :type cash: float
@@ -278,6 +282,8 @@ class MoneyAccount(object):
         :type repo_count:int
         """
         super(MoneyAccount, self).__init__()
+        # 标识
+        self.run_tag = run_tag
         # 账户中可用的现金
         self.cash = cash
         # 创建账户开始, 到目前的总收益, 所有hold_st的总值*returns_percent的加和 / origin_property
@@ -299,6 +305,24 @@ class MoneyAccount(object):
         # 当前st对应的份数, 加和总数 + 剩余份数 = 总份数
         self.stock_repos = dict()
         """:type: dict[str, int]"""
+        self.account_db = None
+        """:type: DBAccount"""
+
+    def open(self):
+        """
+        打开数据库, 如果没打开过的话, 就不写数据库
+        """
+        if not self.account_db:
+            self.account_db = DBAccount()
+            self.account_db.create_table_with_run_tag(self.run_tag)
+        self.account_db.open(self.run_tag)
+
+    def close(self):
+        """
+         关闭数据库
+        """
+        if self.account_db:
+            self.account_db.close()
 
     def __str__(self):
         order_list_str = ''
@@ -326,7 +350,7 @@ class MoneyAccount(object):
                 hold_stock.update(stock_line[0], stock_line[1])
             else:
                 pass
-                #print 'werror : stock_line_dict is not enough, may cause something error.'
+                # print 'werror : stock_line_dict is not enough, may cause something error.'
 
         # 更新完st, 更新自己
         self.update_self()
@@ -392,6 +416,7 @@ class MoneyAccount(object):
         # 买完更新下账户的状态, 当然是partly, 因为不知道其他st的情况
         if res:
             self.update_self()
+            self.account_db.save_account(self)
         return res
 
     def sell(self, stock_name, price, count, update_date):
@@ -421,6 +446,7 @@ class MoneyAccount(object):
             self.order_list.append(create_order)
             self.cash += create_order.stock_cost - create_order.tax
             self.update_self()
+            self.account_db.save_account(self)
             return True
         # 失败
         else:
@@ -573,3 +599,122 @@ class MoneyAccount(object):
                 self.stock_repos.pop(stock_name)
 
         return sell_res
+
+
+class DBAccount(object):
+    """
+    记录模拟过程中, 产生的中间数据
+    每次实例化MoneyAccount对象的时候, 需要提供一个run_tag
+    结构:
+    详情表, 使用run_tag命名, 每次run会产生一张表, 保存这次模拟过程中产生所有中间信息, 订单, 账户相关信息的变动等等, run_tag和DBResult中的run_tag保持一致
+    每一行实际上是出现一个order之后的变化, 所以是以order为基准变化, 每次出现order出现一行
+    """
+
+    _table_name = 'account'
+    # 需要保存的内容
+    line_id = 'id'
+
+    line_cash = 'cash'
+    line_property = 'property'
+    line_returns = 'returns'
+
+    line_order_stock = 'order_stock'
+    line_order_type = 'order_type'
+    line_order_price = 'order_price'
+    line_order_count = 'order_count'
+    line_order_date = 'order_date'
+    line_order_time = 'order_time'
+    line_order_stock_cost = 'stock_cost'
+    line_order_all_cost = 'order_all_cost'
+    line_order_tax = 'order_tax'
+
+    line_hold_stock = 'hold_stock'
+    line_stocks_detail = 'stock_detail'  # HoldStock的str, 把\n都换成II
+
+    account_db_columns = (
+        line_cash,
+        line_property,
+        line_returns,
+        line_order_stock,
+        line_order_type,
+        line_order_price,
+        line_order_count,
+        line_order_date,
+        line_order_time,
+        line_order_stock_cost,
+        line_order_all_cost,
+        line_order_tax,
+        line_hold_stock,
+        line_stocks_detail,
+    )
+
+    def __init__(self):
+        super(DBAccount, self).__init__()
+        self.connection = None
+        """:type: sqlite3.Connection"""
+        self.cursor = None
+        """:type: sqlite3.Cursor"""
+        self.create_db_columns = (
+            self.line_id + ' integer primary key',
+            self.line_cash + ' double',
+            self.line_property + ' double',
+            self.line_returns + ' double',
+            self.line_order_stock + ' varchar(30)',
+            self.line_order_type + ' integer',
+            self.line_order_price + ' double',
+            self.line_order_count + ' bigint',
+            self.line_order_date + ' varchar(30)',
+            self.line_order_time + ' varchar(30)',
+            self.line_order_stock_cost + ' double',
+            self.line_order_all_cost + ' double',
+            self.line_order_tax + ' double',
+            self.line_hold_stock + ' varchar(1000)',
+            self.line_stocks_detail + ' varchar(10000)',
+        )
+        self._db_path = None
+
+    def open(self, run_tag):
+        self._db_path = os.path.join(config.db_root_path, 'account/account_%s.db' % run_tag)
+        if not os.path.exists(os.path.dirname(self._db_path)):
+            os.mkdir(os.path.dirname(self._db_path))
+        self.connection = sqlite3.connect(self._db_path)
+        self.cursor = self.connection.cursor()
+
+    def close(self):
+        self.cursor.close()
+        self.connection.close()
+
+    def create_table_with_run_tag(self, run_tag):
+        """
+        创建一个run_tag对应的表
+        :param run_tag:
+        :type run_tag: str
+        """
+        self.open(run_tag)
+        create_sql_str = 'create table %s (%s)' % (self._table_name, ','.join(self.create_db_columns))
+        self.cursor.execute(create_sql_str)
+        self.close()
+
+    def save_account(self, account):
+        """
+        保存account的信息, order只会写入最后一个order
+        :param account: 账户信息
+        :type account: MoneyAccount
+        """
+        hold_stock = ','.join(account.stocks.keys())
+        stock_detail = ''
+        for stock_name in account.stocks.keys():
+            stock_detail += str(account.stocks[stock_name])
+
+        stock_detail = stock_detail.replace('\n', 'II')
+
+        sql_str = 'insert into %s (%s) values (%f, %f, %f, "%s", %d, %f, %d, "%s", "%s", %f, %f, %f, "%s", "%s")' % (
+            self._table_name, ','.join(self.account_db_columns), account.cash, account.property, account.returns,
+            account.order_list[-1].stock_name, account.order_list[-1].type, account.order_list[-1].price,
+            account.order_list[-1].count, account.order_list[-1].date, account.order_list[-1].time,
+            account.order_list[-1].stock_cost, account.order_list[-1].all_cost, account.order_list[-1].all_tax(),
+            hold_stock, stock_detail,
+        )
+
+        self.cursor.execute(sql_str)
+        self.connection.commit()
