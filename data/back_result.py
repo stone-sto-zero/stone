@@ -22,6 +22,7 @@ class DBResult(object):
     line_sellafterreweight = 'sellafterreweight'
     line_losepercent = 'losepercent'
     line_rankposition = 'rankposition'
+    line_standycount = 'standycount'
     line_rankpercent = 'rankpercent'
     line_run_tag = 'run_tag'
 
@@ -39,6 +40,7 @@ class DBResult(object):
         line_losepercent,
         line_rankposition,
         line_rankpercent,
+        line_standycount,
         line_run_tag,
         line_maxdd,
         line_returns,
@@ -73,6 +75,7 @@ class DBResult(object):
             self.line_losepercent + ' double',
             self.line_rankposition + ' integer',
             self.line_rankpercent + ' double',
+            self.line_standycount + ' integer',
             self.line_run_tag + ' varchar(50)',
             self.line_maxdd + ' double',
             self.line_returns + ' double',

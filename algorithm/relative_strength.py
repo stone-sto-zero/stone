@@ -79,10 +79,12 @@ def res_statistic():
 
 def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweight_period=None, win_percent=0.2,
                                need_up_s01=20, sell_after_reweight=False, lose_percent=0.3, rank_position=None,
-                               rank_percent=0.35):
+                               rank_percent=0.35, standy_count=0):
     """
     第一个按照时间进行的算法, pandas 和numpy还不会用, 先随便写写, 回头一定要认真看看
     这个算法的a股验证: https://www.quantopian.com/algorithms/578dcb3a42af719b300007e4
+    :param standy_count: 后备资金的份数, 必须小于denominator, 否则测试应该跑不起来
+    :type standy_count: int
     :param rank_percent: 在rank中的位置, 以这个位置来选股, 因为有的时候并不一定是涨的最快的表现最好
     :type rank_percent: float
     :param rank_position: 在rank中的位置, 以这个位置来选股, 因为有的时候并不一定是涨的最快的表现最好
@@ -142,9 +144,9 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 
     # 搞定存图片的文件夹, 这次系统一点, 都保存下来, 用参数命名, 用收益/回撤做标题
     chart_title = 'de_%s_ma_%s_tem_%s_re_%s_win_%s_' \
-                  'ups01_%s_sewei_%s_los_%s_rpo_%s_rpc_%s_%s' % (
+                  'ups01_%s_sewei_%s_los_%s_rpo_%s_rpc_sdyc_%d_%s_%s' % (
                       str(denominator), str(ma_length), str(tem_length), str(reweight_period), str(win_percent),
-                      str(need_up_s01), str(sell_after_reweight), str(lose_percent), str(rank_position),
+                      str(need_up_s01), str(sell_after_reweight), str(lose_percent), str(rank_position), standy_count,
                       str(rank_percent), run_tag)
 
     # reweight的计数
@@ -216,34 +218,48 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         if rank_position:
             rank_place = rank_position
 
-        # 更新账户, 发现收益超过win_percent,就撤
+        # 更新账户
+        # 最新价格的dict
+        stock_price_lines = dict()
+        for stock_name in account.stocks.keys():
+            if not np.isnan(tem_rows.loc[date_str, stock_name]):
+                stock_price_lines[stock_name] = (tem_rows.loc[date_str, stock_name], date_str,)
+
+        account.update_with_all_stock_one_line(stock_price_lines)
+
+        # 发现收益超过win_percent或者价格已经不在了,就撤
         if win_percent:
             for stock_name in account.stocks.keys():
                 if not np.isnan(tem_rows.loc[date_str, stock_name]):
-                    account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
                     if account.stocks[stock_name].return_percent > win_percent:
-                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, 1)
+                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
+                                                account.stock_repos[stock_name])
                         win_count += 1
                 else:
                     if account.stocks[stock_name].return_percent > 0:
                         win_count += 1
                     else:
                         lose_count += 1
-                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str, 1)
+                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                                            account.stock_repos[stock_name])
 
+        # 发现收益已经低于lose_percent, 则补仓
+
+        # 发现收益低于lose_percent或者价格已经不在了, 就撤
         if lose_percent:
             for stock_name in account.stocks.keys():
                 if not np.isnan(tem_rows.loc[date_str, stock_name]):
-                    account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
                     if account.stocks[stock_name].return_percent < -lose_percent:
-                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, 1)
+                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
+                                                account.stock_repos[stock_name])
                         lose_count += 1
                 else:
                     if account.stocks[stock_name].return_percent > 0:
                         win_count += 1
                     else:
                         lose_count += 1
-                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str, 1)
+                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                                            account.stock_repos[stock_name])
 
         log_with_filename(chart_title, 'win_count, lose_count : %d %d' % (win_count, lose_count))
 
@@ -306,9 +322,10 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
                     # 先确认这个st还在, 有可能已经消失了, 如果已经消失, 用最后一次的价格, 直接卖掉
                     if np.isnan(tem_rows.loc[date_str, stock_name]):
                         account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                                                repo_count=1)
+                                                repo_count=account.stock_repos[stock_name])
                     else:
-                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, repo_count=1)
+                        account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
+                                                repo_count=account.stock_repos[stock_name])
 
         # 然后把在top rank中, 但是还没买的给补上, 如果买了, 用新的价格update一下
         for stock_name in res_weight:
@@ -333,10 +350,10 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         rank_percent = -1
     need_up = 1 if need_up_s01 else 0
     sell_after = 1 if sell_after_reweight else 0
-    result_db.cursor.execute('insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, "%s", %f, %f)' % (
+    result_db.cursor.execute('insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", %f, %f)' % (
         result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
         denominator, ma_length, tem_length, reweight_period, win_percent, need_up, sell_after,
-        lose_percent, rank_position, rank_percent, run_tag, max_dd, account.returns
+        lose_percent, rank_position, rank_percent, standy_count, run_tag, max_dd, account.returns
     ))
     result_db.connection.commit()
     result_db.close()
