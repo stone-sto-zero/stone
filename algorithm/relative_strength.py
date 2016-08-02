@@ -348,7 +348,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         rank_position = -1
     if not rank_percent:
         rank_percent = -1
-    need_up = 1 if need_up_s01 else 0
+    need_up = need_up_s01 if need_up_s01 else -1
     sell_after = 1 if sell_after_reweight else 0
     result_db.cursor.execute('insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", %f, %f)' % (
         result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
@@ -375,19 +375,19 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 if __name__ == '__main__':
     pass
     # 执行回测, 先注释掉, 跑结果统计
-    # denominator_list =[8, 2]
-    # win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    # lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    #
-    # # 做个修补
-    # for win_percent in win_percent_list:
-    #     for lose_percent in lose_percent_list:
-    #         for denominator in denominator_list:
-    #             relative_strength_monentum(denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
-    #                                        rank_percent=0.38)
+    denominator_list =[6, 4]
+    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+
+    # 做个修补
+    for win_percent in win_percent_list:
+        for lose_percent in lose_percent_list:
+            for denominator in denominator_list:
+                relative_strength_monentum(denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
+                                           rank_percent=0.38)
 
     # debug专用
-    relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
+    # relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
 
     # 统计
     # res_statistic()
