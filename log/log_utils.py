@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+<<<<<<< HEAD
 from config import config
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
 __author__ = 'wgx'
 
@@ -12,7 +15,11 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filemode='a')
 
+<<<<<<< HEAD
 log_path_root = config.log_root_path
+=======
+log_path_root = '/Users/wgx/workspace/logs/stone/'
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
 # 根据时间log的初始化
 t_date_file_path = os.path.join(log_path_root, time.strftime('%Y-%m-%d') + '.log')
@@ -40,7 +47,11 @@ def log_with_filename(filename, content):
     if filename in file_dict:
         file_dict.get(filename).info(str(content))
     else:
+<<<<<<< HEAD
         log_file_path = os.path.join(config.log_root_path, filename + '.log')
+=======
+        log_file_path = os.path.join(os.path.dirname(__file__), '../record/', filename + '.log')
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         file_loger = logging.getLogger('filename' + filename)
         file_handler = logging.FileHandler(log_file_path)
         file_loger.addHandler(file_handler)

@@ -1,4 +1,5 @@
 #! encoding:utf-8
+<<<<<<< HEAD
 import datetime
 
 import math
@@ -8,10 +9,14 @@ from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from config import config
 from data.back_result import DBResult
+=======
+from account.account import MoneyAccount
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 from data.info import DBInfoCache
 import numpy as np
 import pandas as pd
 
+<<<<<<< HEAD
 from log import time_utils
 from log.log_utils import log_with_filename
 
@@ -97,6 +102,13 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     :type need_up_s01: int
     :param win_percent: 坐实收入的比例r
     :type win_percent: float
+=======
+
+def relative_strength_monentum(denominator=3, ma_length=5, tem_length=10):
+    """
+    第一个按照时间进行的算法, pandas 和numpy还不会用, 先随便写写, 回头一定要认真看看
+    这个算法的a股验证: https://www.quantopian.com/algorithms/578dcb3a42af719b300007e4
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     :param reweight_period: 调整持仓比例的时间间隔, 单位是 天
     :type reweight_period: int
     :param ma_length: 在这条均线之上, 认为可以买
@@ -106,6 +118,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     :param denominator: 权重数量
     :type denominator: int
     """
+<<<<<<< HEAD
     time_before = datetime.datetime.now()
     run_tag = 'relative_strength_' + time_before.strftime(time_utils.datetime_log_format) + '_' + str(
         random.randint(1000, 9999))
@@ -395,3 +408,49 @@ if __name__ == '__main__':
     # 测试
     # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
     #                                    rank_percent=0.38)
+=======
+    fix_frame = DBInfoCache().get_fix()
+    date_list = fix_frame.index.values
+
+    print fix_frame[fix_frame == np.NaN]
+
+    # # 记下上证, 把其他几个指数都给删掉
+    # s01 = fix_frame['s000001_ss']
+    # del fix_frame['s000001_ss']
+
+    # # 账户
+    # account = MoneyAccount(1000000)
+    #
+    # # st list
+    # stock_names = fix_frame.columns.values
+    #
+    # for date_str in date_list:
+    #     # 开始循环, 然后根据tem_length分配权重,
+    #     # 过去tem_length的
+    #     tem_rows = fix_frame.loc[:date_str]
+    #     if len(tem_rows.index) < tem_length:
+    #         continue
+    #     tem_rows = tem_rows[-tem_length:]
+    #     # 排序
+    #     ranks = tem_rows.iloc[-1] / tem_rows.iloc[0]
+    #     stock_names = sorted(stock_names, key=lambda x : ranks[x], reverse=True)
+    #     # 找出denominator个在均线之上的st
+    #     # 均线
+    #     ma_values = tem_rows.iloc[-ma_length:].mean()
+    #     # 选出来
+    #     res_weight = list()
+    #     count = 0
+    #     for index in range(0, len(stock_names)):
+    #         if tem_rows.loc[date_str, stock_names[index]] > ma_values[stock_names[index]]:
+    #             res_weight.append(stock_names[index])
+    #             count += 1
+    #         if count >= denominator:
+    #             break
+    #
+    #     print date_str
+    #     print res_weight
+
+
+if __name__ == '__main__':
+    relative_strength_monentum()
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92

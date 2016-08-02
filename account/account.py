@@ -2,12 +2,17 @@
 
 # 这里管账户的相关信息
 # 账户管钱和持仓的变化, 定义明确参数, 注释表明具体是什么意思
+<<<<<<< HEAD
 import os
 from datetime import date, datetime, time
 
 import sqlite3
 
 from config import config
+=======
+from datetime import date, datetime, time
+
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 from data.db.db_helper import DBYahooDay
 from data.info import Infos
 from log import time_utils
@@ -272,7 +277,11 @@ class MoneyAccount(object):
     在infos的上层
     """
 
+<<<<<<< HEAD
     def __init__(self, cash, run_tag, returns=0.0, repo_count=1):
+=======
+    def __init__(self, cash, returns=0.0, repo_count=1):
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         """
         :param cash: 本金
         :type cash: float
@@ -282,8 +291,11 @@ class MoneyAccount(object):
         :type repo_count:int
         """
         super(MoneyAccount, self).__init__()
+<<<<<<< HEAD
         # 标识
         self.run_tag = run_tag
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         # 账户中可用的现金
         self.cash = cash
         # 创建账户开始, 到目前的总收益, 所有hold_st的总值*returns_percent的加和 / origin_property
@@ -305,6 +317,7 @@ class MoneyAccount(object):
         # 当前st对应的份数, 加和总数 + 剩余份数 = 总份数
         self.stock_repos = dict()
         """:type: dict[str, int]"""
+<<<<<<< HEAD
         self.account_db = None
         """:type: DBAccount"""
 
@@ -323,6 +336,8 @@ class MoneyAccount(object):
         """
         if self.account_db:
             self.account_db.close()
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
     def __str__(self):
         order_list_str = ''
@@ -349,8 +364,12 @@ class MoneyAccount(object):
                 stock_line = stock_line_dict.get(stock_name)
                 hold_stock.update(stock_line[0], stock_line[1])
             else:
+<<<<<<< HEAD
                 pass
                 # print 'werror : stock_line_dict is not enough, may cause something error.'
+=======
+                print 'werror : stock_line_dict is not enough, may cause something error.'
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
         # 更新完st, 更新自己
         self.update_self()
@@ -416,7 +435,10 @@ class MoneyAccount(object):
         # 买完更新下账户的状态, 当然是partly, 因为不知道其他st的情况
         if res:
             self.update_self()
+<<<<<<< HEAD
             self.account_db.save_account(self)
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         return res
 
     def sell(self, stock_name, price, count, update_date):
@@ -446,7 +468,10 @@ class MoneyAccount(object):
             self.order_list.append(create_order)
             self.cash += create_order.stock_cost - create_order.tax
             self.update_self()
+<<<<<<< HEAD
             self.account_db.save_account(self)
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
             return True
         # 失败
         else:
@@ -599,6 +624,7 @@ class MoneyAccount(object):
                 self.stock_repos.pop(stock_name)
 
         return sell_res
+<<<<<<< HEAD
 
 
 class DBAccount(object):
@@ -718,3 +744,5 @@ class DBAccount(object):
 
         self.cursor.execute(sql_str)
         self.connection.commit()
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92

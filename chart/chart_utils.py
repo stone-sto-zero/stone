@@ -13,11 +13,19 @@ buy_color = 0xccd6dc
 sell_color = 0xff5656
 
 # 画点时, 必须指定一个无效的y值
+<<<<<<< HEAD
 none_y_value = 0
 
 
 def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filename, title='', horizontal_name='',
                     vertical_name='', output_dir=None, buy_points=None, sell_points=None):
+=======
+none_y_value=0
+
+
+def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, title, horizontal_name='', vertical_name='',
+                    output_dir=None, buy_points=None, sell_points=None):
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     """
     画折线图
     :param sell_points: 卖出的点位, 画灰色三角, 传入的数据长度和horizontal_grid_name 长度一致, 如果为空, 设置值为20000
@@ -46,12 +54,20 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filen
 
     # Create an XYChart object of size 600 x 300 pixels, with a light blue (EEEEFF) background, black
     # border, 1 pxiel 3D border effect and rounded corners
+<<<<<<< HEAD
     c = XYChart(2400, 1200, 0xeeeeff, 0x000000, 1)
+=======
+    c = XYChart(1200, 600, 0xeeeeff, 0x000000, 1)
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     c.setRoundedFrame()
 
     # Set the plotarea at (55, 58) and of size 520 x 195 pixels, with white background. Turn on both
     # horizontal and vertical grid lines with light grey color (0xcccccc)
+<<<<<<< HEAD
     c.setPlotArea(55, 58, 2200, 980, 0xffffff, -1, -1, 0xcccccc, 0xcccccc)
+=======
+    c.setPlotArea(55, 58, 1100, 490, 0xffffff, -1, -1, 0xcccccc, 0xcccccc)
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
     # Add a legend box at (50, 30) (top of the chart) with horizontal layout. Use 9pt Arial Bold font.
     # Set the background and border color to Transparent.
@@ -88,9 +104,15 @@ def draw_line_chart(horizontal_grid_name, values, line_names, line_colors, filen
         layer.addDataSet(values[index], line_colors[index], line_names[index])
 
     if output_dir:
+<<<<<<< HEAD
         output_path = os.path.join(os.path.join(output_dir, filename.replace(' ', '_') + '.png'))
     else:
         output_path = os.path.join(os.path.join(default_path, filename.replace(' ', '_') + '.png'))
+=======
+        output_path = os.path.join(os.path.join(output_dir, title.replace(' ', '_') + '.png'))
+    else:
+        output_path = os.path.join(os.path.join(default_path, title.replace(' ', '_') + '.png'))
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
     # 增加买入和卖出的点位
     if buy_points and len(buy_points) > 0:

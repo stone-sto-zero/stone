@@ -6,12 +6,18 @@ from datetime import date, time
 
 import sqlite3
 
+<<<<<<< HEAD
 from config import config
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 from data.db.db_helper import DBYahooDay
 from data.info_utils import average, build_stock_data_frame
 import pandas as pd
 import numpy as np
+<<<<<<< HEAD
 import os
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
 
 class DBInfoCache(object):
@@ -21,7 +27,11 @@ class DBInfoCache(object):
     用get直接从数据库中取出来, 应该比一下下merge要快得多
     fix的DataFrame是40m, 估计其他的也差不多这个规模
     """
+<<<<<<< HEAD
     db_file_path = os.path.join(config.db_root_path, 'cache_db.db')
+=======
+    db_file_path = '/Users/wgx/workspace/data/cache_db.db'
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     table_name_fix_part1 = 'fix_part1'
     table_name_fix_part2 = 'fix_part2'
     table_name_fix_part3 = 'fix_part3'
@@ -54,7 +64,10 @@ class DBInfoCache(object):
             traceback.print_exc()
 
         res_data = build_stock_data_frame(DBYahooDay.line_fix)
+<<<<<<< HEAD
         res_data = res_data.sort_values(by='date')
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         res_data.iloc[:, 0:1000].to_sql(self.table_name_fix_part1, self.connection)
         res_data.iloc[:, 1000:2000].to_sql(self.table_name_fix_part2, self.connection)
         res_data.iloc[:, 2000:].to_sql(self.table_name_fix_part3, self.connection)
@@ -81,21 +94,28 @@ class DBInfoCache(object):
 
         self.close()
 
+<<<<<<< HEAD
         print res_data
 
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         # 数据的格式还有点问题, 需要fix一下
         date_list = res_data['date']
         del res_data['date']
         del res_data['index']
         res_data.index = date_list
+<<<<<<< HEAD
 
         # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
         res_data = res_data.dropna(axis='index', thresh=2)
 
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
         return res_data
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     # yh = DBYahooDay()
     # yh.open()
     # column_name = 'fix'
@@ -115,12 +135,18 @@ if __name__ == '__main__':
     # print merge_res.loc['2015-10-15', 's603999_ss']
     # yh.close()
 
+=======
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     import datetime
 
     before = datetime.datetime.now()
     print before
 
+<<<<<<< HEAD
     DBInfoCache().set_fix()
+=======
+    print DBInfoCache().get_fix()
+>>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 
     after = datetime.datetime.now()
     print after
