@@ -71,11 +71,7 @@ def build_stock_data_frame_recursive(stock_names, connection, column_name):
         elif right_part is None:
             return left_part
         else:
-<<<<<<< HEAD
             return pd.merge(left_part, right_part, how='outer', left_on='date', right_on='date')
-=======
-            return pd.merge(left_part, right_part, how='left', left_on='date', right_on='date')
->>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
     elif name_len == 1:
         return pd.read_sql(
             'select date, %s as %s from %s order by date' % (column_name, stock_names[0], stock_names[0]),

@@ -7,12 +7,9 @@ time_format = '%H:%M:%S'
 date_format = '%Y-%m-%d'
 datetime_format = date_format + ' ' + time_format
 
-<<<<<<< HEAD
 # 用作log输出的
 datetime_log_format = '%Y_%m_%d_%H_%M_%S'
 
-=======
->>>>>>> aa8b70edb9aeb433916f4729807c6124ac09ee92
 # 一个历史时间, 不会影响当前的数据, 用来填充空数据, 判断是否是无效时间等
 date_never_used = '1971-1-1'
 time_never_used = '00:00:00'
