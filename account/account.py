@@ -416,7 +416,8 @@ class MoneyAccount(object):
         # 买完更新下账户的状态, 当然是partly, 因为不知道其他st的情况
         if res:
             self.update_self()
-            self.account_db.save_account(self)
+            if self.account_db:
+                self.account_db.save_account(self)
         return res
 
     def sell(self, stock_name, price, count, update_date):
@@ -446,7 +447,8 @@ class MoneyAccount(object):
             self.order_list.append(create_order)
             self.cash += create_order.stock_cost - create_order.tax
             self.update_self()
-            self.account_db.save_account(self)
+            if self.account_db:
+                self.account_db.save_account(self)
             return True
         # 失败
         else:

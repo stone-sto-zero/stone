@@ -77,12 +77,34 @@ def res_statistic():
     result_db.close()
 
 
-def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweight_period=None, win_percent=0.2,
-                               need_up_s01=20, sell_after_reweight=False, lose_percent=0.3, rank_position=None,
-                               rank_percent=0.35, standy_count=0):
+def resolve_dataframe():
+    """
+    :return: 一个处理好数据的dataframe
+    :rtype: tuple(pd.DataFrame|pd.Series)
+    """
+    fix_frame = DBInfoCache().get_fix()
+
+    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
+    s01 = fix_frame['s000001_ss']
+    del fix_frame['s000001_ss']
+    del fix_frame['s399001_sz']
+
+    return fix_frame, s01
+
+
+def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_length=3, reweight_period=None,
+                               win_percent=0.1,
+                               need_up_s01=None, sell_after_reweight=False, lose_percent=0.2, rank_position=None,
+                               rank_percent=0.35, standy_count=0, need_write_db=True):
     """
     第一个按照时间进行的算法, pandas 和numpy还不会用, 先随便写写, 回头一定要认真看看
     这个算法的a股验证: https://www.quantopian.com/algorithms/578dcb3a42af719b300007e4
+    :param s01: 上证的数据
+    :type s01: pd.Series
+    :param data_frame: 数据集
+    :type data_frame: pd.DataFrame
+    :param need_write_db: 是否需要结果写入数据库
+    :type need_write_db: bool
     :param standy_count: 后备资金的份数, 必须小于denominator, 否则测试应该跑不起来
     :type standy_count: int
     :param rank_percent: 在rank中的位置, 以这个位置来选股, 因为有的时候并不一定是涨的最快的表现最好
@@ -109,18 +131,14 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
     time_before = datetime.datetime.now()
     run_tag = 'relative_strength_' + time_before.strftime(time_utils.datetime_log_format) + '_' + str(
         random.randint(1000, 9999))
-    fix_frame = DBInfoCache().get_fix()
-
-    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
-    s01 = fix_frame['s000001_ss']
-    del fix_frame['s000001_ss']
-    del fix_frame['s399001_sz']
+    fix_frame = data_frame
 
     date_list = fix_frame.index.values
 
     # 账户
     account = MoneyAccount(1000000, run_tag, repo_count=denominator)
-    account.open()
+    if need_write_db:
+        account.open()
 
     # st list
     stock_names = fix_frame.columns.values
@@ -244,6 +262,22 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
                                             account.stock_repos[stock_name])
 
         # 发现收益已经低于lose_percent, 则补仓
+        if lose_percent and standy_count > 0:
+            if account.cur_repo_left > 0:
+                for stock_name in account.stocks.keys():
+                    cur_return = account.stocks[stock_name].return_percent
+                    # 如果补仓也还是不能搞定lose(这里只考虑第一次补仓不足的情况
+                    # 如果是第二次, 应该是大于1.5*lose_percent, 目测这种情况很少, 且损失无非就是手续费), 放弃
+                    if -lose_percent * 2 < cur_return < -lose_percent:
+                        if not np.isnan(tem_rows.loc[date_str, stock_name]):
+                            account.buy_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, 1)
+                        else:
+                            if account.stocks[stock_name].return_percent > 0:
+                                win_count += 1
+                            else:
+                                lose_count += 1
+                            account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                                                    account.stock_repos[stock_name])
 
         # 发现收益低于lose_percent或者价格已经不在了, 就撤
         if lose_percent:
@@ -304,7 +338,7 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         count = 0
 
         for index in range(rank_place, len(stock_names)):
-            if tem_rows.loc[date_str, stock_names[index]] > \
+            if tem_rows.loc[date_str, stock_names[index]] >= \
                     ma_values[stock_names[index]] and -0.095 < percent_values[stock_names[index]] - 1 < 0.095:
                 res_weight.append(stock_names[index])
                 count += 1
@@ -330,33 +364,37 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
         # 然后把在top rank中, 但是还没买的给补上, 如果买了, 用新的价格update一下
         for stock_name in res_weight:
             if stock_name not in account.stocks.keys():
-                account.buy_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, repo_count=1)
+                if account.cur_repo_left > standy_count:
+                    account.buy_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, repo_count=1)
             else:
                 account.update_with_all_stock_one_line({stock_name: (tem_rows.loc[date_str, stock_name], date_str)})
 
         log_with_filename(chart_title, account.returns)
 
     # 关闭account
-    account.close()
+    if need_write_db:
+        account.close()
 
     # 写DBResult数据库
-    result_db = DBResult()
-    result_db.open()
-    if not reweight_period:
-        reweight_period = -1
-    if not rank_position:
-        rank_position = -1
-    if not rank_percent:
-        rank_percent = -1
-    need_up = 1 if need_up_s01 else 0
-    sell_after = 1 if sell_after_reweight else 0
-    result_db.cursor.execute('insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", %f, %f)' % (
-        result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
-        denominator, ma_length, tem_length, reweight_period, win_percent, need_up, sell_after,
-        lose_percent, rank_position, rank_percent, standy_count, run_tag, max_dd, account.returns
-    ))
-    result_db.connection.commit()
-    result_db.close()
+    if need_write_db:
+        result_db = DBResult()
+        result_db.open()
+        if not reweight_period:
+            reweight_period = -1
+        if not rank_position:
+            rank_position = -1
+        if not rank_percent:
+            rank_percent = -1
+        need_up = need_up_s01 if need_up_s01 else -1
+        sell_after = 1 if sell_after_reweight else 0
+        result_db.cursor.execute(
+            'insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", %f, %f)' % (
+                result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
+                denominator, ma_length, tem_length, reweight_period, win_percent, need_up, sell_after,
+                lose_percent, rank_position, rank_percent, standy_count, run_tag, max_dd, account.returns
+            ))
+        result_db.connection.commit()
+        result_db.close()
 
     # 表格相关
     chart_file_name = 'returns_%f_maxdd_%f_%s' % (account.returns, max_dd, run_tag)
@@ -374,20 +412,23 @@ def relative_strength_monentum(denominator=5, ma_length=5, tem_length=3, reweigh
 
 if __name__ == '__main__':
     pass
+    fix_frame, s01 = resolve_dataframe()
     # 执行回测, 先注释掉, 跑结果统计
-    # denominator_list =[8, 2]
-    # win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    # lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    #
-    # # 做个修补
-    # for win_percent in win_percent_list:
-    #     for lose_percent in lose_percent_list:
-    #         for denominator in denominator_list:
-    #             relative_strength_monentum(denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
-    #                                        rank_percent=0.38)
+    # denominator_list = [6, 4]
+    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+
+    # 做个修补
+    for win_percent in win_percent_list:
+        for lose_percent in lose_percent_list:
+            # for denominator in denominator_list:
+                relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent, lose_percent=lose_percent,
+                                           rank_percent=0.382, need_up_s01=25)
 
     # debug专用
-    relative_strength_monentum(denominator=5, win_percent=0.1, lose_percent=0.2, rank_percent=0.38)
+
+    # relative_strength_monentum(fix_frame, s01, denominator=3, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
+    #                            need_up_s01=20, need_write_db=False)
 
     # 统计
     # res_statistic()
