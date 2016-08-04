@@ -80,7 +80,7 @@ def res_statistic():
 def resolve_dataframe():
     """
     :return: 一个处理好数据的dataframe
-    :rtype: tuple(pd.DataFrame|pd.Series)
+    :rtype: tuple[pd.DataFrame]
     """
     fix_frame = DBInfoCache().get_fix()
 
@@ -397,11 +397,15 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
         result_db.close()
 
     # 表格相关
+
     chart_file_name = 'returns_%f_maxdd_%f_%s' % (account.returns, max_dd, run_tag)
     draw_line_chart(date_list, [chart_s01_value, chart_account_value, chart_account_k250_value, chart_account_k60_value,
                                 chart_account_k30_value],
                     ['s01', 'account', 'k250', 'k60', 'k30'], default_colors[:5],
                     chart_file_name, title=chart_title, output_dir=chart_output_dir)
+
+    print chart_file_name
+    print chart_output_dir
 
     # 写log
     log_with_filename(chart_title, account)
@@ -413,22 +417,22 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
 if __name__ == '__main__':
     pass
     fix_frame, s01 = resolve_dataframe()
-    # 执行回测, 先注释掉, 跑结果统计
-    # denominator_list = [6, 4]
-    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-
-    # 做个修补
-    for win_percent in win_percent_list:
-        for lose_percent in lose_percent_list:
-            # for denominator in denominator_list:
-                relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent, lose_percent=lose_percent,
-                                           rank_percent=0.382, need_up_s01=25)
+    # # 执行回测, 先注释掉, 跑结果统计
+    # # denominator_list = [6, 4]
+    # win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    # lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    #
+    # # 做个修补
+    # for win_percent in win_percent_list:
+    #     for lose_percent in lose_percent_list:
+    #         # for denominator in denominator_list:
+    #             relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent, lose_percent=lose_percent,
+    #                                        rank_percent=0.382, need_up_s01=25)
 
     # debug专用
-
-    # relative_strength_monentum(fix_frame, s01, denominator=3, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
-    #                            need_up_s01=20, need_write_db=False)
+    fix_frame = fix_frame.iloc[-60:]
+    relative_strength_monentum(fix_frame, s01, denominator=3, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
+                               need_up_s01=20, need_write_db=False)
 
     # 统计
     # res_statistic()
