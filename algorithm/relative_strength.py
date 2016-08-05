@@ -439,26 +439,26 @@ if __name__ == '__main__':
     pass
     fix_frame, s01 = resolve_dataframe()
     # # 执行回测, 先注释掉, 跑结果统计
-    denominator_list = [4, 5]
-    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    denominator_list = [4, ]
+    win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25]
+    lose_percent_list = [0.15, 0.2, 0.25, 0.3]
     #
-    # # 做个修补
+    # 做个修补
     for win_percent in win_percent_list:
         for lose_percent in lose_percent_list:
             for denominator in denominator_list:
-                relative_strength_monentum(fix_frame, s01, denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
-                                           rank_percent=0.382, need_up_s01=20, ma_length=11)
+                relative_strength_monentum(fix_frame, s01, denominator=denominator, win_percent=win_percent,
+                                           lose_percent=lose_percent, rank_percent=0.23, need_up_s01=20, ma_length=3)
 
-    # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
+                # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
-    # debug专用
-    # relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.05, rank_percent=0.382,
-    #                            need_up_s01=20, need_write_db=False, ma_length=3)
+                # debug专用
+                # relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.05, rank_percent=0.382,
+                #                            need_up_s01=20, need_write_db=False, ma_length=3)
 
-    # 统计
-    # res_statistic()
+                # 统计
+                # res_statistic()
 
-    # 测试
-    # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
-    #                                    rank_percent=0.38)
+                # 测试
+                # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
+                #                                    rank_percent=0.38)
