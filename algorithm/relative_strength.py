@@ -8,12 +8,51 @@ from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from config import config
 from data.back_result import DBResult
-from data.info import DBInfoCache
+from data.info import DBInfoCache, resolve_dataframe
 import numpy as np
 import pandas as pd
 
 from log import time_utils
 from log.log_utils import log_with_filename
+
+
+def find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4):
+    """
+    找到下个组合
+    :return: 组合
+    :rtype: list
+    """
+    fix_frame, s01 = resolve_dataframe()
+    means = fix_frame.iloc[-ma_length:].mean()
+
+    # 排序, 找到0.382
+    stock_names = fix_frame.columns.values
+
+    ranks = fix_frame.iloc[-1] / fix_frame.iloc[-tem_length]
+
+    rank_count = 0
+    for stock_name in stock_names:
+        if not np.isnan(ranks[stock_name]):
+            rank_count += 1
+
+    percent_values = fix_frame.iloc[-1] / fix_frame.iloc[-2]
+    stock_names = sorted(stock_names, key=lambda x: ranks[x] if not np.isnan(ranks[x]) else -1, reverse=True)
+    count = 0
+    start_point = int(rank_count * rank_percent)
+
+    print stock_names
+    print fix_frame.index.values[-1]
+    print start_point
+    print len(stock_names)
+    for index in range(start_point, len(stock_names)):
+        stock_name = stock_names[index]
+        if fix_frame[stock_name].iloc[-1] >= means[stock_name] and -0.095 < percent_values[
+            stock_names[index]] - 1 < 0.095:
+            print index
+            print stock_name
+            count += 1
+        if count >= denominator:
+            break
 
 
 def res_statistic():
@@ -77,21 +116,6 @@ def res_statistic():
     result_db.close()
 
 
-def resolve_dataframe():
-    """
-    :return: 一个处理好数据的dataframe
-    :rtype: tuple(pd.DataFrame|pd.Series)
-    """
-    fix_frame = DBInfoCache().get_fix()
-
-    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
-    s01 = fix_frame['s000001_ss']
-    del fix_frame['s000001_ss']
-    del fix_frame['s399001_sz']
-
-    return fix_frame, s01
-
-
 def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_length=3, reweight_period=None,
                                win_percent=0.1,
                                need_up_s01=None, sell_after_reweight=False, lose_percent=0.2, rank_position=None,
@@ -121,9 +145,10 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
     :type win_percent: float
     :param reweight_period: 调整持仓比例的时间间隔, 单位是 天
     :type reweight_period: int
-    :param ma_length: 在这条均线之上, 认为可以买
+    :param ma_length: 在这条均线之上, 认为可以买, 等于1无意义
     :type ma_length: int
-    :param tem_length: 积累relative strength 的时间长度, 这段时间, 是决定选股的关键时间, 需要大于均线的时间间隔
+    :param tem_length: 积累relative strength 的时间长度, 最小为2, 1的话成长率肯定都是1,
+                        段时间的增长率排序, 衡量st的rank, 是决定选股的关键时间,  需要大于均线的时间间隔
     :type tem_length: int
     :param denominator: 权重数量
     :type denominator: int
@@ -331,14 +356,14 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
 
         # 找出denominator个在均线之上的st, 且不是涨停的
         # 均线
-        ma_values = tem_rows.iloc[-ma_length:].mean()
-        percent_values = tem_rows.iloc[-1] / tem_rows.iloc[-2]
+        ma_values = fix_frame.loc[:date_str].iloc[-ma_length:].mean()
+        percent_values = fix_frame.loc[:date_str].iloc[-1] / fix_frame.loc[:date_str].iloc[-2]
         # 选出来
         res_weight = list()
         count = 0
 
         for index in range(rank_place, len(stock_names)):
-            if tem_rows.loc[date_str, stock_names[index]] >= \
+            if tem_rows.loc[date_str, stock_names[index]] > \
                     ma_values[stock_names[index]] and -0.095 < percent_values[stock_names[index]] - 1 < 0.095:
                 res_weight.append(stock_names[index])
                 count += 1
@@ -413,22 +438,23 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
 if __name__ == '__main__':
     pass
     fix_frame, s01 = resolve_dataframe()
-    # 执行回测, 先注释掉, 跑结果统计
-    # denominator_list = [6, 4]
+    # # 执行回测, 先注释掉, 跑结果统计
+    denominator_list = [4, 5]
     win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
     lose_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-
-    # 做个修补
+    #
+    # # 做个修补
     for win_percent in win_percent_list:
         for lose_percent in lose_percent_list:
-            # for denominator in denominator_list:
-                relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent, lose_percent=lose_percent,
-                                           rank_percent=0.382, need_up_s01=25)
+            for denominator in denominator_list:
+                relative_strength_monentum(fix_frame, s01, denominator=denominator, win_percent=win_percent, lose_percent=lose_percent,
+                                           rank_percent=0.382, need_up_s01=20, ma_length=11)
+
+    # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
     # debug专用
-
-    # relative_strength_monentum(fix_frame, s01, denominator=3, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
-    #                            need_up_s01=20, need_write_db=False)
+    # relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.05, rank_percent=0.382,
+    #                            need_up_s01=20, need_write_db=False, ma_length=3)
 
     # 统计
     # res_statistic()

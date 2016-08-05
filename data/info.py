@@ -14,6 +14,21 @@ import numpy as np
 import os
 
 
+def resolve_dataframe():
+    """
+    :return: 一个处理好数据的dataframe
+    :rtype: tuple(pd.DataFrame|pd.Series)
+    """
+    fix_frame = DBInfoCache().get_fix()
+
+    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
+    s01 = fix_frame['s000001_ss']
+    del fix_frame['s000001_ss']
+    del fix_frame['s399001_sz']
+
+    return fix_frame, s01
+
+
 class DBInfoCache(object):
     """
     一个用来放临时数据的db, 比如整个close price的DataFrame, 利用to_sql和read_sql来快速的读取到内存中
@@ -80,8 +95,6 @@ class DBInfoCache(object):
         res_data = res_data.merge(part3, how='left', left_on='index', right_on='index')
 
         self.close()
-
-        print res_data
 
         # 数据的格式还有点问题, 需要fix一下
         date_list = res_data['date']
