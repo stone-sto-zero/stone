@@ -11,7 +11,7 @@ def is_win():
     :return:
     :rtype: bool
     """
-    return running_platform.find('Win') >= 0 or running_platform.find('win') >= 0
+    return running_platform.find('Window') >= 0 or running_platform.find('window') >= 0
 
 
 # 存放一些配置, 每次迁移工程的时候, 改这里就可以了
@@ -27,5 +27,6 @@ else:
     png_root_path = '/Users/wgx/workspace/stoneresult/'
 
 
-
+if __name__ == '__main__':
+    print log_root_path
 
