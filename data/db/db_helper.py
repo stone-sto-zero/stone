@@ -807,9 +807,14 @@ if __name__ == '__main__':
     # yh = DBYahooDay()
     # yh.add_fix_value_to_all(-1)
     # 删除无效日期的行
-    target_dates = ['2012-01-02', '2012-01-03']
-    for target_date in target_dates:
-        DBYahooDay().del_target_date_lines(target_date)
+    # target_dates = ['2010-02-15', '2010-02-16','2010-02-17','2010-02-18']
+    # for target_date in target_dates:
+    #     DBYahooDay().del_target_date_lines(target_date)
+
+    yahoo_db = DBYahooDay()
+    yahoo_db.fill_percent_for_all_stock()
+    yahoo_db.fill_point_for_all_stock()
+    yahoo_db.add_fix_value_to_all()
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()

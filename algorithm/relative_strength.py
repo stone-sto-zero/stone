@@ -457,7 +457,7 @@ if __name__ == '__main__':
     # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
     # debug专用
-    relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.05, rank_percent=0.382,
+    relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
                                need_up_s01=20, need_write_db=False, ma_length=3)
     # 统计
     # res_statistic()

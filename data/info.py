@@ -40,6 +40,9 @@ class DBInfoCache(object):
     table_name_fix_part1 = 'fix_part1'
     table_name_fix_part2 = 'fix_part2'
     table_name_fix_part3 = 'fix_part3'
+    table_name_fix_part4 = 'fix_part4'
+    table_name_fix_part5 = 'fix_part5'
+    table_name_fix_part6 = 'fix_part6'
 
     def __init__(self):
         super(DBInfoCache, self).__init__()
@@ -65,14 +68,20 @@ class DBInfoCache(object):
             self.cursor.execute('drop table ' + self.table_name_fix_part1)
             self.cursor.execute('drop table ' + self.table_name_fix_part2)
             self.cursor.execute('drop table ' + self.table_name_fix_part3)
+            self.cursor.execute('drop table ' + self.table_name_fix_part4)
+            self.cursor.execute('drop table ' + self.table_name_fix_part5)
+            self.cursor.execute('drop table ' + self.table_name_fix_part6)
         except:
             traceback.print_exc()
 
         res_data = build_stock_data_frame(DBYahooDay.line_fix)
         res_data = res_data.sort_values(by='date')
-        res_data.iloc[:, 0:1000].to_sql(self.table_name_fix_part1, self.connection)
-        res_data.iloc[:, 1000:2000].to_sql(self.table_name_fix_part2, self.connection)
-        res_data.iloc[:, 2000:].to_sql(self.table_name_fix_part3, self.connection)
+        res_data.iloc[:, 0:500].to_sql(self.table_name_fix_part1, self.connection)
+        res_data.iloc[:, 500:1000].to_sql(self.table_name_fix_part2, self.connection)
+        res_data.iloc[:, 1000:1500].to_sql(self.table_name_fix_part3, self.connection)
+        res_data.iloc[:, 1500:2000].to_sql(self.table_name_fix_part4, self.connection)
+        res_data.iloc[:, 2000:2500].to_sql(self.table_name_fix_part5, self.connection)
+        res_data.iloc[:, 2500:].to_sql(self.table_name_fix_part6, self.connection)
 
         self.close()
 
@@ -90,9 +99,18 @@ class DBInfoCache(object):
                             self.connection)
         part3 = pd.read_sql('select * from %s' % self.table_name_fix_part3,
                             self.connection)
+        part4 = pd.read_sql('select * from %s' % self.table_name_fix_part4,
+                            self.connection)
+        part5 = pd.read_sql('select * from %s' % self.table_name_fix_part5,
+                            self.connection)
+        part6 = pd.read_sql('select * from %s' % self.table_name_fix_part6,
+                            self.connection)
 
         res_data = part1.merge(part2, how='left', left_on='index', right_on='index')
         res_data = res_data.merge(part3, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part4, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part5, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part6, how='left', left_on='index', right_on='index')
 
         self.close()
 
@@ -109,36 +127,83 @@ class DBInfoCache(object):
 
 
 if __name__ == '__main__':
-    # yh = DBYahooDay()
-    # yh.open()
-    # column_name = 'fix'
-    # stock_name = 's300249_sz'
-    # s300249 = pd.read_sql(
-    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
-    #     yh.connection)
-    # stock_name = 's603999_ss'
-    # s3999 = pd.read_sql(
-    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
-    #     yh.connection)
-    #
-    # print s300249
-    # print s3999
-    # merge_res = pd.merge(s300249, s3999, how='left', left_on='date', right_on='date')
-    # merge_res.index = merge_res['date']
-    # print merge_res.loc['2015-10-15', 's603999_ss']
-    # yh.close()
-
+    pass
     import datetime
 
     before = datetime.datetime.now()
     print before
-
-    DBInfoCache().set_fix()
-
+    print DBInfoCache().get_fix()
     after = datetime.datetime.now()
     print after
 
     print after - before
+
+    # 删除有效数据少于10的行
+    # before = datetime.datetime.now()
+    # print before
+    #
+    # df = DBInfoCache().get_fix()
+    # date_strs = df.index.values
+    # for date_str in date_strs:
+    #     data_series = df.loc[date_str]
+    #     # 统计不为nan的数据数量, 小于等于10的日期就给打出来
+    #     not_na_count = 0
+    #     res_date_list = list()
+    #     for stock_info in data_series:
+    #         if not np.isnan(stock_info):
+    #             not_na_count += 1
+    #             if not_na_count >= 10:
+    #                 break
+    #     if not_na_count < 10:
+    #         print date_str
+    #         print not_na_count
+    #         DBYahooDay().del_target_date_lines(date_str)
+    #
+    # after = datetime.datetime.now()
+    # print after
+    #
+    # print after - before
+
+    # 找到临近日期数据一样的行
+    # before = datetime.datetime.now()
+    # print before
+    #
+    # df = DBInfoCache().get_fix()
+    # s171 = df['s600171_ss']
+    # s01sz = df['s000001_sz']
+    # s02sz = df['s000002_sz']
+    # s171_list = list()
+    # s01sz_list = list()
+    # s02sz_list = list()
+    # last_info = -1
+    # for date_str in s171.index.values:
+    #     stock_info = s171[date_str]
+    #     if stock_info == last_info:
+    #         s171_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # last_info = -1
+    # for date_str in s01sz.index.values:
+    #     stock_info = s01sz[date_str]
+    #     if stock_info == last_info:
+    #         s01sz_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # last_info = -1
+    # for date_str in s02sz.index.values:
+    #     stock_info = s02sz[date_str]
+    #     if stock_info == last_info:
+    #         s02sz_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # for date_str in s171_list:
+    #     if date_str in s01sz_list and date_str in s02sz_list:
+    #         print date_str
+    #
+    # after = datetime.datetime.now()
+    # print after
+    #
+    # print after - before
 
 
 class Infos(object):
