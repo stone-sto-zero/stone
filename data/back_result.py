@@ -52,6 +52,7 @@ class DBResult(object):
     line_rankpercent = 'rankpercent'
     line_standycount = 'standycount'
     line_run_tag = 'run_tag'
+    line_lastdate = 'lastdate'
 
     line_maxdd = 'maxdd'
     line_returns = 'returns'
@@ -69,8 +70,9 @@ class DBResult(object):
     line_rankpercent_index = 10
     line_standycount_index = 11
     line_run_tag_index = 12
-    line_maxdd_index = 13
-    line_returns_index = 14
+    line_lastdate_index = 13
+    line_maxdd_index = 14
+    line_returns_index = 15
 
     relative_strenth_zero_columns = (
         line_denominator,
@@ -85,6 +87,7 @@ class DBResult(object):
         line_rankpercent,
         line_standycount,
         line_run_tag,
+        line_lastdate,
         line_maxdd,
         line_returns,
     )
@@ -120,6 +123,7 @@ class DBResult(object):
             self.line_rankpercent + ' double',
             self.line_standycount + ' integer',
             self.line_run_tag + ' varchar(50)',
+            self.line_lastdate + ' varchar(50)',
             self.line_maxdd + ' double',
             self.line_returns + ' double',
         )
@@ -196,15 +200,16 @@ class DBResult(object):
             [0, 10, 20, 30, 40])
         print '\nreturns : '
         print str(return_result)
-        print '\nmaxdd : '
-        print str(maxdd_result)
+        # print '\nmaxdd : '
+        # print str(maxdd_result)
 
 
 if __name__ == '__main__':
-    result_db = DBResult()
-    result_db.open()
-    data_source_lines = result_db.cursor.execute(
-        'SELECT * FROM relative_strength_zero WHERE rankpercent = 0.382').fetchall()
-    result_db.close()
-
-    DBResult.analysis_view_for_result(data_source_lines)
+    # result_db = DBResult()
+    # result_db.open()
+    # data_source_lines = result_db.cursor.execute(
+    #     'SELECT * FROM relative_strength_zero WHERE rankpercent = 0.383 and temlength=3 and malength=3 and denominator=4 and needups01=20').fetchall()
+    # result_db.close()
+    #
+    # DBResult.analysis_view_for_result(data_source_lines)
+    DBResult().create_relative_strength_zero()

@@ -263,12 +263,12 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
 
         # 更新账户
         # 最新价格的dict
-        stock_price_lines = dict()
-        for stock_name in account.stocks.keys():
-            if not np.isnan(tem_rows.loc[date_str, stock_name]):
-                stock_price_lines[stock_name] = (tem_rows.loc[date_str, stock_name], date_str,)
-
-        account.update_with_all_stock_one_line(stock_price_lines)
+        # stock_price_lines = dict()
+        # for stock_name in account.stocks.keys():
+        #     if not np.isnan(tem_rows.loc[date_str, stock_name]):
+        #         stock_price_lines[stock_name] = (tem_rows.loc[date_str, stock_name], date_str,)
+        #
+        # account.update_with_all_stock_one_line(stock_price_lines)
 
         # 发现收益超过win_percent或者价格已经不在了,就撤
         if win_percent:
@@ -278,13 +278,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                         account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
                                                 account.stock_repos[stock_name])
                         win_count += 1
-                else:
-                    if account.stocks[stock_name].return_percent > 0:
-                        win_count += 1
-                    else:
-                        lose_count += 1
-                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                                            account.stock_repos[stock_name])
+                # else:
+                #     if account.stocks[stock_name].return_percent > 0:
+                #         win_count += 1
+                #     else:
+                #         lose_count += 1
+                #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                #                             account.stock_repos[stock_name])
 
         # 发现收益已经低于lose_percent, 则补仓
         if lose_percent and standy_count > 0:
@@ -296,13 +296,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                     if -lose_percent * 2 < cur_return < -lose_percent:
                         if not np.isnan(tem_rows.loc[date_str, stock_name]):
                             account.buy_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, 1)
-                        else:
-                            if account.stocks[stock_name].return_percent > 0:
-                                win_count += 1
-                            else:
-                                lose_count += 1
-                            account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                                                    account.stock_repos[stock_name])
+                        # else:
+                        #     if account.stocks[stock_name].return_percent > 0:
+                        #         win_count += 1
+                        #     else:
+                        #         lose_count += 1
+                        #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                        #                             account.stock_repos[stock_name])
 
         # 发现收益低于lose_percent或者价格已经不在了, 就撤
         if lose_percent:
@@ -312,13 +312,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                         account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
                                                 account.stock_repos[stock_name])
                         lose_count += 1
-                else:
-                    if account.stocks[stock_name].return_percent > 0:
-                        win_count += 1
-                    else:
-                        lose_count += 1
-                    account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                                            account.stock_repos[stock_name])
+                # else:
+                #     if account.stocks[stock_name].return_percent > 0:
+                #         win_count += 1
+                #     else:
+                #         lose_count += 1
+                #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                #                             account.stock_repos[stock_name])
 
         log_with_filename(chart_title, 'win_count, lose_count : %d %d' % (win_count, lose_count))
 
@@ -413,10 +413,10 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
         need_up = need_up_s01 if need_up_s01 else -1
         sell_after = 1 if sell_after_reweight else 0
         result_db.cursor.execute(
-            'insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", %f, %f)' % (
+            'insert into %s (%s) values (%d, %d, %d, %d, %f, %d, %d, %f, %d, %f, %d, "%s", "%s", %f, %f)' % (
                 result_db.table_relative_strength_zero, ','.join(result_db.relative_strenth_zero_columns),
                 denominator, ma_length, tem_length, reweight_period, win_percent, need_up, sell_after,
-                lose_percent, rank_position, rank_percent, standy_count, run_tag, max_dd, account.returns
+                lose_percent, rank_position, rank_percent, standy_count, run_tag, date_list[-1], max_dd, account.returns
             ))
         result_db.connection.commit()
         result_db.close()
@@ -457,8 +457,8 @@ if __name__ == '__main__':
     # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
     # debug专用
-    relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.1, rank_percent=0.382,
-                               need_up_s01=20, need_write_db=False, ma_length=3)
+    relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.25, rank_percent=0.382,
+                               need_up_s01=20, need_write_db=False, ma_length=3, tem_length=3)
     # 统计
     # res_statistic()
 

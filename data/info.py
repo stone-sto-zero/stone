@@ -132,6 +132,9 @@ if __name__ == '__main__':
 
     before = datetime.datetime.now()
     print before
+
+    # fix date 2016-08-08, 不能轻易改, 否则数据产生误差
+    # DBInfoCache().set_fix()
     print DBInfoCache().get_fix()
     after = datetime.datetime.now()
     print after
