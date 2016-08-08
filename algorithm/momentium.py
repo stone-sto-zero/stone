@@ -38,7 +38,7 @@ class BaseState(object):
         self.pre_state = pre_state
 
     def __str__(self):
-        return 'cur_state : %s  pre_state :　%s\n' \
+        return 'cur_state : %s  pre_state : %s\n' \
                'start_date : %s  start_value : %f\n' \
                'end_date : %s  end_value : %f\n' \
                'high_date : %s  high_value : %f\n' \
@@ -126,8 +126,8 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
             if cur_price > cur_state.high_value:
                 if shut_by == 1:
                     cur_down_start = down_start - (cur_price / cur_state.low_value - 1) * 100 * shut_speed
-                    cur_state.high_value = cur_price
-                    cur_state.high_date = date_str
+                cur_state.high_value = cur_price
+                cur_state.high_date = date_str
 
             # 如果是通过天来衰减，不管怎样，cur_down_start都需要变
             if shut_by == 0:
@@ -173,7 +173,7 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
                                 -index].low_value
                             break
             elif cur_state.pre_state == BaseState.a_state:
-                fix_point = (res_states[-2].high_value - res_states[-2].low_value) * down_fix + res_states[-2].low_value
+                fix_point = (res_states[-2].high_value - res_states[-2].low_value) * (1-down_fix) + res_states[-2].low_value
 
             # 进入c的第一个条件达成
             if cur_state.low_value < fix_point:
@@ -193,6 +193,7 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
                             cur_state.end_date = date_str
                             new_state = BaseState(date_str, cur_price, BaseState.c_state, cur_state.cur_state)
                             res_states.append(new_state)
+                            break
 
             # 是否有机会进入a
             # 必须没有新的状态产生
@@ -200,6 +201,7 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
                 if cur_price > cur_state.low_value:
                     if cur_price / cur_state.low_value - 1 > up_start:
                         # 进入a
+                        cur_down_start = down_start
                         cur_state.end_value = cur_price
                         cur_state.end_date = date_str
                         new_state = BaseState(date_str, cur_price, BaseState.a_state, cur_state.cur_state)
@@ -218,6 +220,7 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
             # 考虑进入a
             if (cur_price - cur_state.low_value) / cur_state.low_value > up_start:
                 # 进入a
+                cur_down_start = down_start
                 cur_state.end_value = cur_price
                 cur_state.end_date = date_str
                 new_state = BaseState(date_str, cur_price, BaseState.a_state, cur_state.cur_state)
@@ -246,12 +249,10 @@ def resolve_state_list(data_source, down_start=0.1, shut_speed=0.001, shut_by=0,
 
 if __name__ == '__main__':
     fix_frame, s01 = resolve_dataframe()
+    s01 = s01.dropna(axis='index')
     res = resolve_state_list(s01, down_start=0.1, shut_speed=0.001, shut_by=0, min_down_start=0.03, up_start=0.08,
                              down_fix=0.8, adjust_range=0.02, adjust_back_period=3, c2b_start=0.02)
     for state in res:
-        print state.low_date
-        print state.low_value
-        print state.period_days
         print str(state)
 
 
