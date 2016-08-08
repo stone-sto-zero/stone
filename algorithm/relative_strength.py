@@ -278,13 +278,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                         account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
                                                 account.stock_repos[stock_name])
                         win_count += 1
-                # else:
-                #     if account.stocks[stock_name].return_percent > 0:
-                #         win_count += 1
-                #     else:
-                #         lose_count += 1
-                #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                #                             account.stock_repos[stock_name])
+                        # else:
+                        #     if account.stocks[stock_name].return_percent > 0:
+                        #         win_count += 1
+                        #     else:
+                        #         lose_count += 1
+                        #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                        #                             account.stock_repos[stock_name])
 
         # 发现收益已经低于lose_percent, 则补仓
         if lose_percent and standy_count > 0:
@@ -296,13 +296,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                     if -lose_percent * 2 < cur_return < -lose_percent:
                         if not np.isnan(tem_rows.loc[date_str, stock_name]):
                             account.buy_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str, 1)
-                        # else:
-                        #     if account.stocks[stock_name].return_percent > 0:
-                        #         win_count += 1
-                        #     else:
-                        #         lose_count += 1
-                        #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                        #                             account.stock_repos[stock_name])
+                            # else:
+                            #     if account.stocks[stock_name].return_percent > 0:
+                            #         win_count += 1
+                            #     else:
+                            #         lose_count += 1
+                            #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                            #                             account.stock_repos[stock_name])
 
         # 发现收益低于lose_percent或者价格已经不在了, 就撤
         if lose_percent:
@@ -312,13 +312,13 @@ def relative_strength_monentum(data_frame, s01, denominator=5, ma_length=1, tem_
                         account.sell_with_repos(stock_name, tem_rows.loc[date_str, stock_name], date_str,
                                                 account.stock_repos[stock_name])
                         lose_count += 1
-                # else:
-                #     if account.stocks[stock_name].return_percent > 0:
-                #         win_count += 1
-                #     else:
-                #         lose_count += 1
-                #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
-                #                             account.stock_repos[stock_name])
+                        # else:
+                        #     if account.stocks[stock_name].return_percent > 0:
+                        #         win_count += 1
+                        #     else:
+                        #         lose_count += 1
+                        #     account.sell_with_repos(stock_name, account.stocks[stock_name].cur_price, date_str,
+                        #                             account.stock_repos[stock_name])
 
         log_with_filename(chart_title, 'win_count, lose_count : %d %d' % (win_count, lose_count))
 
@@ -443,25 +443,25 @@ if __name__ == '__main__':
     pass
     fix_frame, s01 = resolve_dataframe()
     # # 执行回测, 先注释掉, 跑结果统计
-    # denominator_list = [4, ]
-    # win_percent_list = [0.05, 0.1, 0.15, 0.2, 0.25]
-    # lose_percent_list = [0.15, 0.2, 0.25, 0.3]
-    # #
-    # # 做个修补
-    # for win_percent in win_percent_list:
-    #     for lose_percent in lose_percent_list:
-    #         for denominator in denominator_list:
-    #             relative_strength_monentum(fix_frame, s01, denominator=denominator, win_percent=win_percent,
-    #                                        lose_percent=lose_percent, rank_percent=0.23, need_up_s01=20, ma_length=3)
+    win_percent_list = [value * 0.01 for value in range(5, 44)]
+    lose_percent_list = [0.21, 0.22, 0.23, 0.24]
 
-    # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
+    for win_percent in win_percent_list:
+        for lose_percent in lose_percent_list:
+            relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent,
+                                       lose_percent=lose_percent, rank_percent=0.382, need_up_s01=20, ma_length=3)
 
-    # debug专用
-    relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=0.25, rank_percent=0.382,
-                               need_up_s01=20, need_write_db=False, ma_length=3, tem_length=3)
-    # 统计
-    # res_statistic()
+            # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
-    # 测试
-    # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
-    #                                    rank_percent=0.38)
+            # debug专用
+            # lose_list = [0.1, 0.15, 0.2, 0.25]
+            # for lose in lose_list:
+            #     relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.05, lose_percent=lose,
+            #                                rank_percent=0.382,
+            #                                need_up_s01=20, need_write_db=False, ma_length=3, tem_length=3)
+            # 统计
+            # res_statistic()
+
+            # 测试
+            # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
+            #                                    rank_percent=0.38)

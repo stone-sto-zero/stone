@@ -37,7 +37,7 @@ class DBResult(object):
     这里放回测的结果数据
     """
     _db_path = os.path.join(config.db_root_path, 'result_db.db')
-    table_relative_strength_zero = 'relative_strength_zero'
+    table_relative_strength_zero = 're'
 
     line_id = 'id'
     line_denominator = 'denominator'
