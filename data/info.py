@@ -14,12 +14,38 @@ import numpy as np
 import os
 
 
-def resolve_dataframe():
+def resolve_real_dateframe():
+    """
+    从数据库中直接取数据, 保证是最新的
+    :return: 处理好数据的dataframe
+    :rtype: tuple[pd.DataFrame|pd.Series]
+    """
+    fix_frame = build_stock_data_frame(DBYahooDay.line_fix)
+
+    fix_frame = fix_frame.sort_values(by='date')
+
+    # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
+    fix_frame = fix_frame.dropna(axis='index', thresh=3)
+
+    # 数据的格式还有点问题, 需要fix一下
+    date_list = fix_frame['date']
+    del fix_frame['date']
+    fix_frame.index = date_list
+
+    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
+    s01 = fix_frame['s000001_ss']
+    del fix_frame['s000001_ss']
+    del fix_frame['s399001_sz']
+
+    return fix_frame, s01
+
+
+def resolve_dataframe(frame_type=0):
     """
     :return: 一个处理好数据的dataframe
     :rtype: tuple(pd.DataFrame|pd.Series)
     """
-    fix_frame = DBInfoCache().get_fix()
+    fix_frame = DBInfoCache().get_fix(frame_type)
 
     # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
     s01 = fix_frame['s000001_ss']
@@ -44,6 +70,15 @@ class DBInfoCache(object):
     table_name_fix_part5 = 'fix_part5'
     table_name_fix_part6 = 'fix_part6'
 
+    table_fix_group = (
+        table_name_fix_part1, table_name_fix_part2, table_name_fix_part3, table_name_fix_part4, table_name_fix_part5,
+        table_name_fix_part6
+    )
+
+    table_percent_group = (
+        'percent_part1', 'percent_part2', 'percent_part3', 'percent_part4', 'percent_part5', 'percent_part6'
+    )
+
     def __init__(self):
         super(DBInfoCache, self).__init__()
         self.connection = None
@@ -59,51 +94,66 @@ class DBInfoCache(object):
         self.cursor.close()
         self.connection.close()
 
-    def set_fix(self):
+    def set_fix(self, frame_type=0):
         """
         设置fix的DataFrame
+        :param frame_type: 类型 0 fix 1 percent
+        :type frame_type: int
         """
         self.open()
+        if frame_type == 1:
+            table_group = self.table_percent_group
+            line_name = DBYahooDay.line_percent
+        else:
+            table_group = self.table_fix_group
+            line_name = DBYahooDay.line_fix
         try:
-            self.cursor.execute('drop table ' + self.table_name_fix_part1)
-            self.cursor.execute('drop table ' + self.table_name_fix_part2)
-            self.cursor.execute('drop table ' + self.table_name_fix_part3)
-            self.cursor.execute('drop table ' + self.table_name_fix_part4)
-            self.cursor.execute('drop table ' + self.table_name_fix_part5)
-            self.cursor.execute('drop table ' + self.table_name_fix_part6)
+            self.cursor.execute('drop table ' + table_group[0])
+            self.cursor.execute('drop table ' + table_group[1])
+            self.cursor.execute('drop table ' + table_group[2])
+            self.cursor.execute('drop table ' + table_group[3])
+            self.cursor.execute('drop table ' + table_group[4])
+            self.cursor.execute('drop table ' + table_group[5])
         except:
             traceback.print_exc()
 
-        res_data = build_stock_data_frame(DBYahooDay.line_fix)
+        res_data = build_stock_data_frame(line_name)
         res_data = res_data.sort_values(by='date')
-        res_data.iloc[:, 0:500].to_sql(self.table_name_fix_part1, self.connection)
-        res_data.iloc[:, 500:1000].to_sql(self.table_name_fix_part2, self.connection)
-        res_data.iloc[:, 1000:1500].to_sql(self.table_name_fix_part3, self.connection)
-        res_data.iloc[:, 1500:2000].to_sql(self.table_name_fix_part4, self.connection)
-        res_data.iloc[:, 2000:2500].to_sql(self.table_name_fix_part5, self.connection)
-        res_data.iloc[:, 2500:].to_sql(self.table_name_fix_part6, self.connection)
+        res_data.iloc[:, 0:500].to_sql(table_group[0], self.connection)
+        res_data.iloc[:, 500:1000].to_sql(table_group[1], self.connection)
+        res_data.iloc[:, 1000:1500].to_sql(table_group[2], self.connection)
+        res_data.iloc[:, 1500:2000].to_sql(table_group[3], self.connection)
+        res_data.iloc[:, 2000:2500].to_sql(table_group[4], self.connection)
+        res_data.iloc[:, 2500:].to_sql(table_group[5], self.connection)
 
         self.close()
 
-    def get_fix(self):
+    def get_fix(self, frame_type=0):
         """
         获取fix的DataFrame
+        :param frame_type: 类型 同上
+        :type frame_type: int
         :return:
         :rtype: pd.DataFrame
         """
         self.open()
 
-        part1 = pd.read_sql('select * from %s' % self.table_name_fix_part1,
+        if frame_type == 1:
+            table_group = self.table_percent_group
+        else:
+            table_group = self.table_fix_group
+
+        part1 = pd.read_sql('select * from %s' % table_group[0],
                             self.connection)
-        part2 = pd.read_sql('select * from %s' % self.table_name_fix_part2,
+        part2 = pd.read_sql('select * from %s' % table_group[1],
                             self.connection)
-        part3 = pd.read_sql('select * from %s' % self.table_name_fix_part3,
+        part3 = pd.read_sql('select * from %s' % table_group[2],
                             self.connection)
-        part4 = pd.read_sql('select * from %s' % self.table_name_fix_part4,
+        part4 = pd.read_sql('select * from %s' % table_group[3],
                             self.connection)
-        part5 = pd.read_sql('select * from %s' % self.table_name_fix_part5,
+        part5 = pd.read_sql('select * from %s' % table_group[4],
                             self.connection)
-        part6 = pd.read_sql('select * from %s' % self.table_name_fix_part6,
+        part6 = pd.read_sql('select * from %s' % table_group[5],
                             self.connection)
 
         res_data = part1.merge(part2, how='left', left_on='index', right_on='index')
@@ -119,7 +169,6 @@ class DBInfoCache(object):
         del res_data['date']
         del res_data['index']
         res_data.index = date_list
-
         # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
         res_data = res_data.dropna(axis='index', thresh=2)
 
@@ -128,14 +177,17 @@ class DBInfoCache(object):
 
 if __name__ == '__main__':
     pass
-    import datetime
 
+    # print DBInfoCache().get_fix()
+    # fix_frame, s01 = resolve_real_dateframe()
+    # print fix_frame.loc['2008-10-01']
+    import datetime
     before = datetime.datetime.now()
     print before
 
     # fix date 2016-08-08, 不能轻易改, 否则数据产生误差
     # DBInfoCache().set_fix()
-    print DBInfoCache().get_fix()
+    DBInfoCache().set_fix(frame_type=1)
     after = datetime.datetime.now()
     print after
 

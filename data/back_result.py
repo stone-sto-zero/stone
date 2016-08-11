@@ -203,10 +203,11 @@ class DBResult(object):
 
 
 if __name__ == '__main__':
+    pass
     result_db = DBResult()
     result_db.open()
     data_source_lines = result_db.cursor.execute(
-        'select * from re where losepercent = 0.44').fetchall()
+        'select * from re where malength=19 order by returns desc').fetchall()
     result_db.close()
 
     DBResult.analysis_view_for_result(data_source_lines)
