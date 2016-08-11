@@ -169,8 +169,6 @@ class DBResult(object):
             res.devi += ((data - res.avg) * (data - res.avg))
         res.devi /= len(data_list)
 
-        print level_counts
-
         # level
         if levels:
             res.level_names = levels
@@ -205,11 +203,12 @@ class DBResult(object):
 
 
 if __name__ == '__main__':
-    # result_db = DBResult()
-    # result_db.open()
-    # data_source_lines = result_db.cursor.execute(
-    #     'SELECT * FROM relative_strength_zero WHERE rankpercent = 0.383 and temlength=3 and malength=3 and denominator=4 and needups01=20').fetchall()
-    # result_db.close()
-    #
-    # DBResult.analysis_view_for_result(data_source_lines)
-    DBResult().create_relative_strength_zero()
+    pass
+    result_db = DBResult()
+    result_db.open()
+    data_source_lines = result_db.cursor.execute(
+        'select * from re where malength=19 order by returns desc').fetchall()
+    result_db.close()
+
+    DBResult.analysis_view_for_result(data_source_lines)
+    # DBResult().create_relative_strength_zero()

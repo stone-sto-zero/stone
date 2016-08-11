@@ -8,7 +8,7 @@ from account.account import MoneyAccount
 from chart.chart_utils import draw_line_chart, default_colors
 from config import config
 from data.back_result import DBResult
-from data.info import DBInfoCache, resolve_dataframe
+from data.info import DBInfoCache, resolve_dataframe, resolve_real_dateframe
 import numpy as np
 import pandas as pd
 
@@ -443,13 +443,13 @@ if __name__ == '__main__':
     pass
     fix_frame, s01 = resolve_dataframe()
     # # 执行回测, 先注释掉, 跑结果统计
-    win_percent_list = [value * 0.01 for value in range(5, 44)]
-    lose_percent_list = [0.21, 0.22, 0.23, 0.24]
-
-    for win_percent in win_percent_list:
-        for lose_percent in lose_percent_list:
-            relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=win_percent,
-                                       lose_percent=lose_percent, rank_percent=0.382, need_up_s01=20, ma_length=3)
+    temlist = range(2, 22)
+    malengthlist = [18, 19, 20, 21]
+    for tem in temlist:
+        for malength in malengthlist:
+            relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.25,
+                                       lose_percent=0.1, rank_percent=0.382, need_up_s01=20, ma_length=malength,
+                                       tem_length=tem)
 
             # find_next_group(ma_length=5, tem_length=3, rank_percent=0.382, denominator=4)
 
@@ -464,4 +464,10 @@ if __name__ == '__main__':
 
             # 测试
             # relative_strength_monentum(denominator=5, win_percent=0.2, lose_percent=0.2,
-            #                                    rank_percent=0.38)
+            #                                     rank_percent=0.38)
+
+            # 用最新的数据执行一次, 用于选股
+            # fix_frame, s01 = resolve_real_dateframe()
+            # print fix_frame
+            # relative_strength_monentum(fix_frame, s01, denominator=4, win_percent=0.25, lose_percent=0.1, rank_percent=0.382,
+            #                            need_up_s01=20, ma_length=3, need_write_db=False)

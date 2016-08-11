@@ -811,10 +811,11 @@ if __name__ == '__main__':
     # for target_date in target_dates:
     #     DBYahooDay().del_target_date_lines(target_date)
 
-    yahoo_db = DBYahooDay()
-    yahoo_db.fill_percent_for_all_stock()
-    yahoo_db.fill_point_for_all_stock()
-    yahoo_db.add_fix_value_to_all()
+    # 重置percent, point, fix等
+    # yahoo_db = DBYahooDay()
+    # yahoo_db.fill_percent_for_all_stock()
+    # yahoo_db.fill_point_for_all_stock()
+    # yahoo_db.add_fix_value_to_all()
 
     # 删除某一日期的数据
     # yahoo_db = DBYahooDay()
@@ -827,3 +828,11 @@ if __name__ == '__main__':
     # yahoo_db = DBYahooDay()
     # yahoo_db.fill_percent_for_all_stock(-1)
     # yahoo_db.fill_point_for_all_stock(-1)
+
+    # 打印所有stock_name, 给zipline用
+    stock_names = DBYahooDay().select_all_stock_names()
+    res_list = list()
+    for stock_name in stock_names:
+        res_list.append(stock_name[1:].replace('_', '.').encode('utf-8'))
+
+    print tuple(res_list)
