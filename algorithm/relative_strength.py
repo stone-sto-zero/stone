@@ -444,7 +444,7 @@ if __name__ == '__main__':
     fix_frame, s01 = resolve_dataframe()
     # # 执行回测, 先注释掉, 跑结果统计
     win_percent_list = [value * 0.01 for value in range(5, 44)]
-    lose_percent_list = [0.21, 0.22, 0.23, 0.24]
+    lose_percent_list = [0.41, 0.42, 0.43, 0.44]
 
     for win_percent in win_percent_list:
         for lose_percent in lose_percent_list:
