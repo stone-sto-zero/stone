@@ -7,6 +7,125 @@ import os
 from config import config
 
 
+class DBResultMaSta(object):
+    table_name = 're'
+
+    line_id = 'id'
+    line_name = 'name'  # 对应某一种情况, 比如,使用的st, total, portfolio等
+    line_type = 'simu_type'
+    line_w5c = 'w5c'
+    line_w5p = 'w5p'
+    line_w10c = 'w10c'
+    line_w10p = 'w10p'
+    line_w15c = 'w15c'
+    line_w15p = 'w15p'
+    line_w20c = 'w20c'
+    line_w20p = 'w20p'
+    line_w25c = 'w25c'
+    line_w25p = 'w25p'
+    line_w30c = 'w30c'
+    line_w30p = 'w30p'
+    line_wc = 'wc'
+    line_wp = 'wp'
+    line_return = 'returns'
+    line_maxdd = 'maxdd'
+
+    type_ma5 = 0
+    type_ma10 = 1
+    type_ma15 = 2
+    type_ma20 = 3
+    type_ma25 = 4
+    type_ma30 = 5
+
+    columns = (
+        line_name,
+        line_type,
+        line_w5c,
+        line_w5p,
+        line_w10c,
+        line_w10p,
+        line_w15c,
+        line_w15p,
+        line_w20c,
+        line_w20p,
+        line_w25c,
+        line_w25p,
+        line_w30c,
+        line_w30p,
+        line_wc,
+        line_wp,
+        line_return,
+        line_maxdd,
+    )
+
+    line_id_index = 0
+    line_name_index = 1
+    line_type_index = 2
+    line_w5c_index = 3
+    line_w5p_index = 4
+    line_w10c_index = 5
+    line_w10p_index = 6
+    line_w15c_index = 7
+    line_w15p_index = 8
+    line_w20c_index = 9
+    line_w20p_index = 10
+    line_w25c_index = 11
+    line_w25p_index = 12
+    line_w30c_index = 13
+    line_w30p_index = 14
+    line_wc_index = 15
+    line_wp_index = 16
+    line_return_index = 17
+    line_maxdd_index = 18
+
+    _sql_path = os.path.join(config.db_root_path, 'result_sta_count.db')
+
+    def __init__(self):
+        super(DBResultMaSta, self).__init__()
+        self.connection = None
+        """:type:sqlite3.Connection"""
+        self.cursor = None
+        """:type:sqlite3.Cursor"""
+
+    def open(self):
+        self.connection = sqlite3.connect(self._sql_path)
+        self.cursor = self.connection.cursor()
+
+    def close(self):
+        self.cursor.close()
+        self.connection.close()
+
+    def create_table(self):
+        self.open()
+        db_create_columns = (
+            self.line_id + ' integer primary key',
+            self.line_name + ' varchar(100)',
+            self.line_type + ' integer',
+            self.line_w5c + ' integer',
+            self.line_w5p + ' double',
+            self.line_w10c + ' integer',
+            self.line_w10p + ' double',
+            self.line_w15c + ' integer',
+            self.line_w15p + ' double',
+            self.line_w20c + ' integer',
+            self.line_w20p + ' double',
+            self.line_w25c + ' integer',
+            self.line_w25p + ' double',
+            self.line_w30c + ' integer',
+            self.line_w30p + ' double',
+            self.line_wc + ' integer',
+            self.line_wp + ' double',
+            self.line_return + ' double',
+            self.line_maxdd + ' double',
+        )
+        sql_str = 'create table %s (%s)' % (self.table_name, ','.join(db_create_columns))
+        self.cursor.execute(sql_str)
+        self.close()
+
+if __name__ == '__main__':
+    DBResultMaSta().create_table()
+
+
 class DBResultAna(object):
     def __init__(self):
         super(DBResultAna, self).__init__()
@@ -204,11 +323,11 @@ class DBResult(object):
 
 if __name__ == '__main__':
     pass
-    result_db = DBResult()
-    result_db.open()
-    data_source_lines = result_db.cursor.execute(
-        'select * from re where malength=19 order by returns desc').fetchall()
-    result_db.close()
-
-    DBResult.analysis_view_for_result(data_source_lines)
+    # result_db = DBResult()
+    # result_db.open()
+    # data_source_lines = result_db.cursor.execute(
+    #     'select * from re where malength=19 order by returns desc').fetchall()
+    # result_db.close()
+    #
+    # DBResult.analysis_view_for_result(data_source_lines)
     # DBResult().create_relative_strength_zero()
