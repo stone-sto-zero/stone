@@ -5,6 +5,7 @@ import numpy as np
 
 # 在这里验证所有ma的情况
 from account.account import MoneyAccount
+from chart.chart_utils import draw_line_chart, default_colors
 from config import config
 from data.back_result import DBResultMaSta
 from data.info import resolve_dataframe
@@ -13,8 +14,10 @@ import os
 from log.log_utils import log_with_filename
 
 
-def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True):
+def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True, need_png=False):
     """
+    :param need_png: 是否需要画图, 画图会把st, 相应的均线, 以及account的情况记录下
+    :type need_png: bool
     :param need_write_db: 是否需要写入数据库
     :type need_write_db: bool
     :param stock_name: st名称
@@ -42,6 +45,12 @@ def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True):
     lc = 0
     maxdd = 10000
     account_max_value = -1
+
+    account_values = list()
+    stock_values = list()
+    stock_mean_values = list()
+    account_divider = stock_series.iloc[0] * 1000 / account.property
+
     for date_str in date_strs:
         # 数量不够, pass
         if len(stock_series.loc[:date_str]) < m:
@@ -49,8 +58,14 @@ def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True):
 
         stock_source = stock_series.loc[:date_str][-m:]
         stock_price = stock_series[date_str]
+        stock_mean = stock_source.mean()
 
         account.update_with_all_stock_one_line({stock_name: (stock_price, date_str)})
+
+        # 表格相关
+        account_values.append(account.property * account_divider / 1000)
+        stock_values.append(stock_price)
+        stock_mean_values.append(stock_mean)
 
         if account.property > account_max_value:
             account_max_value = account.property
@@ -59,7 +74,7 @@ def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True):
         if cur_dd < maxdd:
             maxdd = cur_dd
 
-        if stock_price > stock_source.mean():
+        if stock_price > stock_mean:
             account.buy_with_repos(stock_name, stock_price, date_str, 1)
         else:
             if stock_name in account.stocks.keys():
@@ -118,6 +133,12 @@ def back_test_ma(stock_series, stock_name, run_tag, m=5, need_write_db=True):
         result_db.connection.commit()
         result_db.close()
 
+    if need_png:
+        result_path = os.path.join(os.path.dirname(__file__), '../result/')
+        result_file_name = 'tmp.png'
+        draw_line_chart(date_strs, [stock_values, stock_mean_values, account_values], ['st', 'ma', 'account'],
+                        default_colors[:3], result_file_name, output_dir=result_path)
+
 
 def start_back_test_for_all():
     fix_frame, s01 = resolve_dataframe()
@@ -125,13 +146,14 @@ def start_back_test_for_all():
     ma = 5
     already_exist = False
     for stock_name in stock_names:
-        if stock_name == 's002492_sz':
+        if stock_name == 's002493_sz':
             already_exist = True
             continue
         if not already_exist:
             continue
         run_tag = stock_name + '_ma' + str(ma)
         back_test_ma(fix_frame[stock_name], stock_name, run_tag, m=ma)
+    back_test_ma(fix_frame['s600171_ss'], 's600171', 'tmp600171', m=20, need_png=True)
 
 
 if __name__ == '__main__':

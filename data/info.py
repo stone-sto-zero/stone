@@ -79,6 +79,26 @@ class DBInfoCache(object):
         'percent_part1', 'percent_part2', 'percent_part3', 'percent_part4', 'percent_part5', 'percent_part6'
     )
 
+    table_open_group = (
+        'open_part1', 'open_part2', 'open_part3', 'open_part4', 'open_part5', 'open_part6',
+    )
+
+    table_close_group = (
+        'close_part1', 'close_part2', 'close_part3', 'close_part4', 'close_part5', 'close_part6'
+    )
+
+    table_high_group = (
+        'high_part1', 'high_part2','high_part3', 'high_part4', 'high_part5', 'high_part6',
+    )
+
+    table_low_group = (
+        'low_part1', 'low_part2', 'low_part3', 'low_part4', 'low_part5', 'low_part6',
+    )
+
+    table_fix_rate_group = (
+        'rage_part1', 'rate_part2', 'rage_part3', 'rate_part4', 'rage_part5', 'rate_part6',
+    )
+
     def __init__(self):
         super(DBInfoCache, self).__init__()
         self.connection = None
@@ -97,13 +117,35 @@ class DBInfoCache(object):
     def set_fix(self, frame_type=0):
         """
         设置fix的DataFrame
-        :param frame_type: 类型 0 fix 1 percent
+        :param frame_type: 类型
+            0 fix
+            1 percent
+            2 open
+            3 close
+            4 high
+            5 low
+            6 fix_rate
         :type frame_type: int
         """
         self.open()
         if frame_type == 1:
             table_group = self.table_percent_group
             line_name = DBYahooDay.line_percent
+        elif frame_type == 2:
+            table_group = self.table_open_group
+            line_name = DBYahooDay.line_open
+        elif frame_type == 3:
+            table_group = self.table_close_group
+            line_name = DBYahooDay.line_close
+        elif frame_type == 4:
+            table_group = self.table_high_group
+            line_name = DBYahooDay.line_high
+        elif frame_type == 5:
+            table_group = self.table_low_group
+            line_name = DBYahooDay.line_low
+        elif frame_type == 6:
+            table_group = self.table_fix_rate_group
+            line_name = DBYahooDay.line_cur_fix_rate
         else:
             table_group = self.table_fix_group
             line_name = DBYahooDay.line_fix
@@ -140,6 +182,16 @@ class DBInfoCache(object):
 
         if frame_type == 1:
             table_group = self.table_percent_group
+        elif frame_type == 2:
+            table_group = self.table_open_group
+        elif frame_type == 3:
+            table_group = self.table_close_group
+        elif frame_type == 4:
+            table_group = self.table_high_group
+        elif frame_type == 5:
+            table_group = self.table_low_group
+        elif frame_type == 6:
+            table_group = self.table_fix_rate_group
         else:
             table_group = self.table_fix_group
 
@@ -182,12 +234,14 @@ if __name__ == '__main__':
     # fix_frame, s01 = resolve_real_dateframe()
     # print fix_frame.loc['2008-10-01']
     import datetime
+
     before = datetime.datetime.now()
     print before
 
     # fix date 2016-08-08, 不能轻易改, 否则数据产生误差
     # DBInfoCache().set_fix()
-    DBInfoCache().set_fix(frame_type=1)
+    for i in range(2, 7):
+        print DBInfoCache().get_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
 
