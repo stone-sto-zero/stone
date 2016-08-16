@@ -44,7 +44,7 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
     log_file_path = os.path.join(config.log_root_path, 'dual_info.log')
 
     # Debug时修改stock_names
-    stock_names = ['s600171_ss', ]
+    # stock_names = ['s600171_ss', ]
 
     for stock_name in stock_names:
         o = open_frame[stock_name]
@@ -138,6 +138,9 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
                     account.sell_with_repos(stock_name, cur, date_str, repo_count=1)
 
         total = w30c + w25c + w20c + w15c + w10c + w5c + wc + lc
+        if total == 0:
+            log_with_filename(log_file_path, stock_name + ' total is 0')
+            continue
         wc += w30c + w25c + w20c + w15c + w10c + w5c
         w5p = float(w5c) / total
         w10p = float(w10c) / total
@@ -164,8 +167,8 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
 
         # 画图
         if need_png:
-            result_path = os.path.join(os.path.dirname(__file__), '../result/')
-            result_file_name = 'tmp.png'
+            result_path = os.path.join(os.path.dirname(__file__), '../result/dual')
+            result_file_name = run_tag
             draw_line_chart(date_strs, [c.values, account_values],
                             ['st', 'account'], default_colors[:2], result_file_name,
                             output_dir=result_path)
@@ -174,6 +177,6 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
 if __name__ == '__main__':
     import datetime
     cur = datetime.datetime.now()
-    dual_thrust(k=0.7, denominator=5, pre_n=3, buy_line=0, need_write_db=False, need_png=True)
+    dual_thrust(k=0.7, denominator=24, pre_n=3, buy_line=0, need_write_db=True, need_png=True)
     after = datetime.datetime.now()
     print after - cur
