@@ -39,21 +39,20 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
     low_frame = (cache_db.get_fix(frame_type=5).dropna(axis='index', thresh=3)) * rate_frame
 
     stock_names = open_frame.columns.values
-    date_strs = open_frame.index.values
 
-    log_file_path = os.path.join(config.log_root_path, 'dual_info.log')
+    log_file_path = os.path.join(config.log_root_path, ('dual_%f_%d_%d_%d.log' % (k, denominator, pre_n, buy_line)))
 
     # Debug时修改stock_names
-    # stock_names = ['s600171_ss', ]
+    # stock_names = ['s000004_sz', ]
 
     for stock_name in stock_names:
-        o = open_frame[stock_name]
+        o = open_frame[stock_name].dropna(axis='index')
         """:type:pd.Series"""
-        c = close_frame[stock_name]
+        c = close_frame[stock_name].dropna(axis='index')
         """:type:pd.Series"""
-        h = high_frame[stock_name]
+        h = high_frame[stock_name].dropna(axis='index')
         """:type:pd.Series"""
-        l = low_frame[stock_name]
+        l = low_frame[stock_name].dropna(axis='index')
         """:type:pd.Series"""
 
         run_tag = '%s_dual_k%f_de%d_n%d_bl%d' % (stock_name, k, denominator, pre_n, buy_line)
@@ -75,6 +74,8 @@ def dual_thrust(k=0.7, denominator=1, pre_n=1, buy_line=0, need_write_db=True, n
         # 图标相关
         account_divider = c.iloc[0] * 1000 / account.property
         account_values = list()
+
+        date_strs = o.index.values
 
         for date_str in date_strs:
 

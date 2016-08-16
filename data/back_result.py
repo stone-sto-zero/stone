@@ -403,4 +403,4 @@ if __name__ == '__main__':
     #
     # DBResultMaSta.analysis_view_for_result(data_source_lines)
     # DBResult().create_relative_strength_zero()
-    # DBResultMaSta().create_table()
+    DBResultMaSta().create_table()
