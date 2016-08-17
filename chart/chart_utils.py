@@ -1,9 +1,14 @@
 # -*- encoding:utf-8 -*-
 
 from pychartdir import *
+from config import config
 
 # 默认的存储目录
-default_path = '/Users/wgx/workspace/python/stone/1v_stone/result'
+
+if not config.is_win():
+    default_path = '/Users/wgx/workspace/python/stone/1v_stone/result'
+else:
+    default_path = 'D:/share/png'
 
 # 不同颜色, 画线的时候直接用就行, 先准备5个, 以后不够再加
 default_colors = [0xff0000, 0x008800, 0x3333ff, 0x1ad145, 0xff9500]

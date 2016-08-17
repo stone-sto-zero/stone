@@ -14,6 +14,47 @@ import numpy as np
 import os
 
 
+def resolve_real_dateframe():
+    """
+    从数据库中直接取数据, 保证是最新的
+    :return: 处理好数据的dataframe
+    :rtype: tuple[pd.DataFrame|pd.Series]
+    """
+    fix_frame = build_stock_data_frame(DBYahooDay.line_fix)
+
+    fix_frame = fix_frame.sort_values(by='date')
+
+    # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
+    fix_frame = fix_frame.dropna(axis='index', thresh=3)
+
+    # 数据的格式还有点问题, 需要fix一下
+    date_list = fix_frame['date']
+    del fix_frame['date']
+    fix_frame.index = date_list
+
+    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
+    s01 = fix_frame['s000001_ss']
+    del fix_frame['s000001_ss']
+    del fix_frame['s399001_sz']
+
+    return fix_frame, s01
+
+
+def resolve_dataframe(frame_type=0):
+    """
+    :return: 一个处理好数据的dataframe
+    :rtype: tuple(pd.DataFrame|pd.Series)
+    """
+    fix_frame = DBInfoCache().get_fix(frame_type)
+
+    # 记下上证, 把其他几个指数都给删掉, 另外深证的数据有问题, 如果以后要用, 记得要clean
+    s01 = fix_frame['s000001_ss']
+    del fix_frame['s000001_ss']
+    del fix_frame['s399001_sz']
+
+    return fix_frame, s01
+
+
 class DBInfoCache(object):
     """
     一个用来放临时数据的db, 比如整个close price的DataFrame, 利用to_sql和read_sql来快速的读取到内存中
@@ -25,6 +66,38 @@ class DBInfoCache(object):
     table_name_fix_part1 = 'fix_part1'
     table_name_fix_part2 = 'fix_part2'
     table_name_fix_part3 = 'fix_part3'
+    table_name_fix_part4 = 'fix_part4'
+    table_name_fix_part5 = 'fix_part5'
+    table_name_fix_part6 = 'fix_part6'
+
+    table_fix_group = (
+        table_name_fix_part1, table_name_fix_part2, table_name_fix_part3, table_name_fix_part4, table_name_fix_part5,
+        table_name_fix_part6
+    )
+
+    table_percent_group = (
+        'percent_part1', 'percent_part2', 'percent_part3', 'percent_part4', 'percent_part5', 'percent_part6'
+    )
+
+    table_open_group = (
+        'open_part1', 'open_part2', 'open_part3', 'open_part4', 'open_part5', 'open_part6',
+    )
+
+    table_close_group = (
+        'close_part1', 'close_part2', 'close_part3', 'close_part4', 'close_part5', 'close_part6'
+    )
+
+    table_high_group = (
+        'high_part1', 'high_part2','high_part3', 'high_part4', 'high_part5', 'high_part6',
+    )
+
+    table_low_group = (
+        'low_part1', 'low_part2', 'low_part3', 'low_part4', 'low_part5', 'low_part6',
+    )
+
+    table_fix_rate_group = (
+        'rage_part1', 'rate_part2', 'rage_part3', 'rate_part4', 'rage_part5', 'rate_part6',
+    )
 
     def __init__(self):
         super(DBInfoCache, self).__init__()
@@ -41,54 +114,113 @@ class DBInfoCache(object):
         self.cursor.close()
         self.connection.close()
 
-    def set_fix(self):
+    def set_fix(self, frame_type=0):
         """
         设置fix的DataFrame
+        :param frame_type: 类型
+            0 fix
+            1 percent
+            2 open
+            3 close
+            4 high
+            5 low
+            6 fix_rate
+        :type frame_type: int
         """
         self.open()
+        if frame_type == 1:
+            table_group = self.table_percent_group
+            line_name = DBYahooDay.line_percent
+        elif frame_type == 2:
+            table_group = self.table_open_group
+            line_name = DBYahooDay.line_open
+        elif frame_type == 3:
+            table_group = self.table_close_group
+            line_name = DBYahooDay.line_close
+        elif frame_type == 4:
+            table_group = self.table_high_group
+            line_name = DBYahooDay.line_high
+        elif frame_type == 5:
+            table_group = self.table_low_group
+            line_name = DBYahooDay.line_low
+        elif frame_type == 6:
+            table_group = self.table_fix_rate_group
+            line_name = DBYahooDay.line_cur_fix_rate
+        else:
+            table_group = self.table_fix_group
+            line_name = DBYahooDay.line_fix
         try:
-            self.cursor.execute('drop table ' + self.table_name_fix_part1)
-            self.cursor.execute('drop table ' + self.table_name_fix_part2)
-            self.cursor.execute('drop table ' + self.table_name_fix_part3)
+            self.cursor.execute('drop table ' + table_group[0])
+            self.cursor.execute('drop table ' + table_group[1])
+            self.cursor.execute('drop table ' + table_group[2])
+            self.cursor.execute('drop table ' + table_group[3])
+            self.cursor.execute('drop table ' + table_group[4])
+            self.cursor.execute('drop table ' + table_group[5])
         except:
             traceback.print_exc()
 
-        res_data = build_stock_data_frame(DBYahooDay.line_fix)
+        res_data = build_stock_data_frame(line_name)
         res_data = res_data.sort_values(by='date')
-        res_data.iloc[:, 0:1000].to_sql(self.table_name_fix_part1, self.connection)
-        res_data.iloc[:, 1000:2000].to_sql(self.table_name_fix_part2, self.connection)
-        res_data.iloc[:, 2000:].to_sql(self.table_name_fix_part3, self.connection)
+        res_data.iloc[:, 0:500].to_sql(table_group[0], self.connection)
+        res_data.iloc[:, 500:1000].to_sql(table_group[1], self.connection)
+        res_data.iloc[:, 1000:1500].to_sql(table_group[2], self.connection)
+        res_data.iloc[:, 1500:2000].to_sql(table_group[3], self.connection)
+        res_data.iloc[:, 2000:2500].to_sql(table_group[4], self.connection)
+        res_data.iloc[:, 2500:].to_sql(table_group[5], self.connection)
 
         self.close()
 
-    def get_fix(self):
+    def get_fix(self, frame_type=0):
         """
         获取fix的DataFrame
+        :param frame_type: 类型 同上
+        :type frame_type: int
         :return:
         :rtype: pd.DataFrame
         """
         self.open()
 
-        part1 = pd.read_sql('select * from %s' % self.table_name_fix_part1,
+        if frame_type == 1:
+            table_group = self.table_percent_group
+        elif frame_type == 2:
+            table_group = self.table_open_group
+        elif frame_type == 3:
+            table_group = self.table_close_group
+        elif frame_type == 4:
+            table_group = self.table_high_group
+        elif frame_type == 5:
+            table_group = self.table_low_group
+        elif frame_type == 6:
+            table_group = self.table_fix_rate_group
+        else:
+            table_group = self.table_fix_group
+
+        part1 = pd.read_sql('select * from %s' % table_group[0],
                             self.connection)
-        part2 = pd.read_sql('select * from %s' % self.table_name_fix_part2,
+        part2 = pd.read_sql('select * from %s' % table_group[1],
                             self.connection)
-        part3 = pd.read_sql('select * from %s' % self.table_name_fix_part3,
+        part3 = pd.read_sql('select * from %s' % table_group[2],
+                            self.connection)
+        part4 = pd.read_sql('select * from %s' % table_group[3],
+                            self.connection)
+        part5 = pd.read_sql('select * from %s' % table_group[4],
+                            self.connection)
+        part6 = pd.read_sql('select * from %s' % table_group[5],
                             self.connection)
 
         res_data = part1.merge(part2, how='left', left_on='index', right_on='index')
         res_data = res_data.merge(part3, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part4, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part5, how='left', left_on='index', right_on='index')
+        res_data = res_data.merge(part6, how='left', left_on='index', right_on='index')
 
         self.close()
-
-        print res_data
 
         # 数据的格式还有点问题, 需要fix一下
         date_list = res_data['date']
         del res_data['date']
         del res_data['index']
         res_data.index = date_list
-
         # 上证的部分日期对应的数据无意义, 导致其他的数据都是NaN, 把这样的行都给干掉
         res_data = res_data.dropna(axis='index', thresh=2)
 
@@ -96,36 +228,91 @@ class DBInfoCache(object):
 
 
 if __name__ == '__main__':
-    # yh = DBYahooDay()
-    # yh.open()
-    # column_name = 'fix'
-    # stock_name = 's300249_sz'
-    # s300249 = pd.read_sql(
-    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
-    #     yh.connection)
-    # stock_name = 's603999_ss'
-    # s3999 = pd.read_sql(
-    #     'select date, %s as %s from %s order by date' % (column_name, stock_name, stock_name),
-    #     yh.connection)
-    #
-    # print s300249
-    # print s3999
-    # merge_res = pd.merge(s300249, s3999, how='left', left_on='date', right_on='date')
-    # merge_res.index = merge_res['date']
-    # print merge_res.loc['2015-10-15', 's603999_ss']
-    # yh.close()
+    pass
 
+    # print DBInfoCache().get_fix()
+    # fix_frame, s01 = resolve_real_dateframe()
+    # print fix_frame.loc['2008-10-01']
     import datetime
 
     before = datetime.datetime.now()
     print before
 
-    DBInfoCache().set_fix()
-
+    # fix date 2016-08-08, 不能轻易改, 否则数据产生误差
+    # DBInfoCache().set_fix()
+    for i in range(2, 7):
+        print DBInfoCache().get_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
 
     print after - before
+
+    # 删除有效数据少于10的行
+    # before = datetime.datetime.now()
+    # print before
+    #
+    # df = DBInfoCache().get_fix()
+    # date_strs = df.index.values
+    # for date_str in date_strs:
+    #     data_series = df.loc[date_str]
+    #     # 统计不为nan的数据数量, 小于等于10的日期就给打出来
+    #     not_na_count = 0
+    #     res_date_list = list()
+    #     for stock_info in data_series:
+    #         if not np.isnan(stock_info):
+    #             not_na_count += 1
+    #             if not_na_count >= 10:
+    #                 break
+    #     if not_na_count < 10:
+    #         print date_str
+    #         print not_na_count
+    #         DBYahooDay().del_target_date_lines(date_str)
+    #
+    # after = datetime.datetime.now()
+    # print after
+    #
+    # print after - before
+
+    # 找到临近日期数据一样的行
+    # before = datetime.datetime.now()
+    # print before
+    #
+    # df = DBInfoCache().get_fix()
+    # s171 = df['s600171_ss']
+    # s01sz = df['s000001_sz']
+    # s02sz = df['s000002_sz']
+    # s171_list = list()
+    # s01sz_list = list()
+    # s02sz_list = list()
+    # last_info = -1
+    # for date_str in s171.index.values:
+    #     stock_info = s171[date_str]
+    #     if stock_info == last_info:
+    #         s171_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # last_info = -1
+    # for date_str in s01sz.index.values:
+    #     stock_info = s01sz[date_str]
+    #     if stock_info == last_info:
+    #         s01sz_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # last_info = -1
+    # for date_str in s02sz.index.values:
+    #     stock_info = s02sz[date_str]
+    #     if stock_info == last_info:
+    #         s02sz_list.append(date_str)
+    #     last_info = stock_info
+    #
+    # for date_str in s171_list:
+    #     if date_str in s01sz_list and date_str in s02sz_list:
+    #         print date_str
+    #
+    # after = datetime.datetime.now()
+    # print after
+    #
+    # print after - before
 
 
 class Infos(object):
