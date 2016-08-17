@@ -5,6 +5,7 @@ import sqlite3
 import traceback
 import os
 
+from config import config
 from log.log_utils import log_by_time
 
 
@@ -356,7 +357,7 @@ class DBYahooDay(DBBase):
         self._close_connection()
 
     def _db_file_path(self):
-        return '/Users/wgx/workspace/data/db_yahoo_day.db'
+        return os.path.join(config.db_root_path, 'db_yahoo_day.db')
 
     def add_column_to_table(self, table_name, column_name, column_desc):
         """
