@@ -395,12 +395,12 @@ class DBResult(object):
 
 if __name__ == '__main__':
     pass
-    # result_db = DBResultMaSta()
-    # result_db.open()
-    # data_source_lines = result_db.cursor.execute(
-    #     'select * from re where simu_type=6').fetchall()
-    # result_db.close()
-    #
-    # DBResultMaSta.analysis_view_for_result(data_source_lines)
+    result_db = DBResultMaSta()
+    result_db.open()
+    data_source_lines = result_db.cursor.execute(
+        'select * from re where name like "%de24%"').fetchall()
+    result_db.close()
+
+    DBResultMaSta.analysis_view_for_result(data_source_lines)
     # DBResult().create_relative_strength_zero()
-    DBResultMaSta().create_table()
+    # DBResultMaSta().create_table()
