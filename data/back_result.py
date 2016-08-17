@@ -36,6 +36,7 @@ class DBResultMaSta(object):
     type_ma20 = 3
     type_ma25 = 4
     type_ma30 = 5
+    type_macd = 6
 
     columns = (
         line_name,
@@ -122,8 +123,79 @@ class DBResultMaSta(object):
         self.cursor.execute(sql_str)
         self.close()
 
+    @classmethod
+    def analysis_basis_for_one_column(cls, data_list, levels=None):
+        """
+        分析一项数据, 返回包含平均数, 标准差, 最大值, 最小值,
+        :param levels: 结果会包含各个级别占比, 这里给出级别的列表, 必须由小到大排好序, 如果不传, 就不给结果
+        :type levels: list[float]
+        :param data_list: 数据list
+        :type data_list: list[float]
+        :return: 返回一个包含各项水平的结构
+        :rtype: DBResultAna
+        """
+        res = DBResultAna()
+        level_counts = dict()
+
+        # level
+        if levels:
+            for level in levels:
+                level_counts[level] = 0
+
+        # 平均数, 最大值, 最小值
+        for data in data_list:
+            res.avg += data
+            if data > res.max:
+                res.max = data
+            if data < res.min:
+                res.min = data
+            if levels:
+                for level in levels:
+                    if data < level:
+                        level_counts[level] += 1
+                        break
+
+        res.avg /= len(data_list)
+        # 标准差
+        for data in data_list:
+            res.devi += ((data - res.avg) * (data - res.avg))
+        res.devi /= len(data_list)
+
+        # level
+        if levels:
+            res.level_names = levels
+            left = 1
+            for level in levels:
+                percent = float(level_counts[level]) / len(data_list)
+                res.levels.append(percent)
+                left -= percent
+
+            res.levels.append(left)
+
+        res.devi = sqrt(res.devi)
+
+        return res
+
+    @classmethod
+    def analysis_view_for_result(cls, data_list):
+        """
+        输出一个参数集对应数据结果的各项指标
+        :param data_list: 数据结果集合
+        :type data_list:list[tuple]
+        """
+        maxdd_result = cls.analysis_basis_for_one_column([data_line[cls.line_maxdd_index] for data_line in data_list],
+                                                         [-0.7, -0.6, -0.5, -0.4])
+        return_result = cls.analysis_basis_for_one_column(
+            [data_line[cls.line_return_index] for data_line in data_list],
+            [0, 10, 20, 30, 40])
+        print '\nreturns : '
+        print str(return_result)
+        print '\nmaxdd : '
+        print str(maxdd_result)
+
 if __name__ == '__main__':
-    DBResultMaSta().create_table()
+    pass
+    # DBResultMaSta().create_table()
 
 
 class DBResultAna(object):
@@ -323,11 +395,12 @@ class DBResult(object):
 
 if __name__ == '__main__':
     pass
-    # result_db = DBResult()
-    # result_db.open()
-    # data_source_lines = result_db.cursor.execute(
-    #     'select * from re where malength=19 order by returns desc').fetchall()
-    # result_db.close()
-    #
-    # DBResult.analysis_view_for_result(data_source_lines)
+    result_db = DBResultMaSta()
+    result_db.open()
+    data_source_lines = result_db.cursor.execute(
+        'select * from re where name like "%de24%"').fetchall()
+    result_db.close()
+
+    DBResultMaSta.analysis_view_for_result(data_source_lines)
     # DBResult().create_relative_strength_zero()
+    # DBResultMaSta().create_table()

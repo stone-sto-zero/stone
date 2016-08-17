@@ -698,33 +698,34 @@ class DBYahooDay(DBBase):
                 # 如果没保存过价格, 那么保存价格, 进入下一轮
                 if not last_date:
                     last_date = stock_line[self.column_dict.get(self.line_date)]
-                    last_close_price = stock_line[self.column_dict.get(self.line_close)]
+                    last_close_price = stock_line[self.column_dict.get(self.line_fix)]
                     # 第一天的percent写0, divider写0
                     # self.update_target_date_percent_and_divider(stock_name, last_date, 0, 0)
 
                 # 上次的日期存在, 证明上一行是存在的
                 else:
                     # 记录当前的价格, 日期
-                    cur_price = stock_line[self.column_dict.get(self.line_close)]
+                    cur_price = stock_line[self.column_dict.get(self.line_fix)]
                     cur_date = stock_line[self.column_dict.get(self.line_date)]
 
                     if last_close_price <= 0:
                         # 上次出现的价格有问题, 写入percent 为0, divider为1
                         self.update_target_date_percent_and_divider(stock_name, cur_date, 0, 1)
                     else:
-                        last_percent = cur_price / last_close_price - 1
-                        # percent超过了10%或者-10%, 证明出现了问题, percent照常记录, divider为1
-                        if last_percent > 0.11 or last_percent < -0.11:
-                            self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 1)
-                        else:
-                            # 数据没问题,正常写入,divider为0
-                            self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 0)
+                        if cur_price:
+                            last_percent = cur_price / last_close_price - 1
+                            # percent超过了10%或者-10%, 证明出现了问题, percent照常记录, divider为1
+                            if last_percent > 0.11 or last_percent < -0.11:
+                                self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 1)
+                            else:
+                                # 数据没问题,正常写入,divider为0
+                                self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 0)
 
                     # 保存当前日期为上次日期
                     last_date = cur_date
                     last_close_price = cur_price
 
-                log_by_time(stock_name + ' ' + str(last_percent) + ' ' + str(stock_count))
+            log_by_time(stock_name)
             # 每完成一个st, commit一次
             self.connection.commit()
             stock_count += 1
@@ -805,8 +806,9 @@ if __name__ == '__main__':
     # DBYahooDay().del_duplicate_lines_for_table_name()
 
     # 填充fix和rate
-    # yh = DBYahooDay()
-    # yh.add_fix_value_to_all(-1)
+    yh = DBYahooDay()
+    yh.fill_percent_for_all_stock()
+    yh.fill_point_for_all_stock()
     # 删除无效日期的行
     # target_dates = ['2010-02-15', '2010-02-16','2010-02-17','2010-02-18']
     # for target_date in target_dates:
@@ -831,9 +833,9 @@ if __name__ == '__main__':
     # yahoo_db.fill_point_for_all_stock(-1)
 
     # 打印所有stock_name, 给zipline用
-    stock_names = DBYahooDay().select_all_stock_names()
-    res_list = list()
-    for stock_name in stock_names:
-        res_list.append(stock_name[1:].replace('_', '.').encode('utf-8'))
-
-    print tuple(res_list)
+    # stock_names = DBYahooDay().select_all_stock_names()
+    # res_list = list()
+    # for stock_name in stock_names:
+    #     res_list.append(stock_name[1:].replace('_', '.').encode('utf-8'))
+    #
+    # print tuple(res_list)

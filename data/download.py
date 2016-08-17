@@ -92,6 +92,9 @@ class SinaDownload(object):
             if stock_request.status_code == 200:
 
                 stock_info = stock_request.text.split('"')[1].split(',')
+                if float(stock_info[3]) == 0 or float(stock_info[8] == 0):
+                    log_by_time(stock_name + ' daily update failed. Stock close or volume is 0.')
+                    return
                 # print stock_info
                 # 开始存数据库
                 self.yahoo_db.insert_into_table(stock_name,
@@ -326,9 +329,9 @@ def run_every_day():
     SinaDownload().update_cur_day()
     # 更新percent和point和fix
     yahoo_db = DBYahooDay()
+    yahoo_db.add_fix_value_to_all(-1)
     yahoo_db.fill_percent_for_all_stock(-1)
     yahoo_db.fill_point_for_all_stock(-1)
-    yahoo_db.add_fix_value_to_all(-1)
 
 
 if __name__ == '__main__':
