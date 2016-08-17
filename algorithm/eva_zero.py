@@ -14,9 +14,11 @@ class EvaZero(object):
     opt_eva**: 操作策略
     """
 
-    def __init__(self, run_tag, close_frame, open_frame=None, high_frame=None, low_frame=None):
+    def __init__(self, run_tag, close_frame, open_frame=None, high_frame=None, low_frame=None, percent_frame=None):
         """
         初始化, 只需要数据就可以, 注意的是需要使用fix_rate修正
+        :param percent_frame:
+        :type percent_frame: pd.DataFrame
         :param close_frame: close是一定要的, 因为所有的操作一定是基于这个的
         :type close_frame: pd.DataFrame
         :param open_frame:
@@ -32,6 +34,7 @@ class EvaZero(object):
         self.open_frame = open_frame
         self.high_frame = high_frame
         self.low_frame = low_frame
+        self.percent_frame = percent_frame
 
         # 统计信息
         self.run_tag = run_tag
@@ -40,7 +43,8 @@ class EvaZero(object):
         self.account = MoneyAccount(1000000, run_tag, repo_count=1)
         self.cur_date = ''
         self.cur_select = list()
-        self.data_set = dict()
+        self.data_set_close = dict()
+        self.data_set_percent = dict()
         self.s01 = None
 
     def limit_eva_ma_and_k(self, ma_group=(5, 10, 20, 30), k_max=1.0, k_range=(-0.33, 0.33),
@@ -114,8 +118,8 @@ class EvaZero(object):
         """
         # 在所有的st中找
         self.cur_select = list()
-        for stock_name in self.data_set.keys():
-            data_source = self.data_set[stock_name]
+        for stock_name in self.data_set_close.keys():
+            data_source = self.data_set_close[stock_name]
             """:type:pd.Series"""
 
             # 不够n天
@@ -123,7 +127,7 @@ class EvaZero(object):
                 continue
             ct = data_source.loc[:self.cur_date].iloc[-n:]
             """:type: pd.Series"""
-            pt = data_percent.loc[:self.cur_date].iloc[-n:]
+            pt = self.data_set_percent[stock_name].loc[:self.cur_date].iloc[-n:]
 
             # 前面n天的前n-x天, 都是每隔m天, 都是close递增
             is_ok = True
@@ -148,7 +152,6 @@ class EvaZero(object):
 
             self.cur_select.append(stock_name)
 
-
     def opt_eva_confirm_win_and_fix_lose(self):
         """
         止盈和修补策略
@@ -166,8 +169,9 @@ class EvaZero(object):
         # 暂时只包含close_frame
         stock_names = self.close_frame.columns.values
         for stock_name in stock_names:
-            self.data_set[stock_name] = self.close_frame[stock_name].dropna(axis='index')
-        self.s01 = self.data_set['s000001_ss']
+            self.data_set_close[stock_name] = self.close_frame[stock_name].dropna(axis='index')
+            self.data_set_percent[stock_name] = self.percent_frame[stock_name].dropna(axis='index')
+        self.s01 = self.data_set_close['s000001_ss']
 
         # 开始loop
         date_strs = self.s01.index.values
@@ -179,7 +183,7 @@ class EvaZero(object):
                 continue
 
             self.select_eva_high_and_continue()
-
+            self.opt_eva_confirm_win_and_fix_lose()
 
 
 if __name__ == '__main__':
