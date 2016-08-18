@@ -3,7 +3,7 @@
 import pandas as pd
 
 from account.account import MoneyAccount
-from data.info import resolve_dataframe
+from data.info import resolve_dataframe, DBInfoCache
 
 
 class EvaZero(object):
@@ -161,9 +161,9 @@ class EvaZero(object):
         止损：    仅仅通过大盘的位置进行止损，如果任意均线斜率大于1，进行无理由卖出
         """
 
-    def start_eva(self):
+    def fix_data_accu(self):
         """
-        启动algo(改变eva的时钟), 期望这里进行各种方法的组合, 因为一切的输入都只有数据, 所以过程应该是通用的
+        修复数据的问题
         """
         # 处理数据, 把dataframe转成series的一个dict, 因为有的数据中间包含nan, 导致ma等数据受到影响
         # 暂时只包含close_frame
@@ -173,6 +173,11 @@ class EvaZero(object):
             self.data_set_percent[stock_name] = self.percent_frame[stock_name].dropna(axis='index')
         self.s01 = self.data_set_close['s000001_ss']
 
+    def start_eva(self):
+        """
+        启动algo(改变eva的时钟), 期望这里进行各种方法的组合, 因为一切的输入都只有数据, 所以过程应该是通用的
+        """
+        self.fix_data_accu()
         # 开始loop
         date_strs = self.s01.index.values
         for date_str in date_strs:
@@ -185,6 +190,19 @@ class EvaZero(object):
             self.select_eva_high_and_continue()
             self.opt_eva_confirm_win_and_fix_lose()
 
+    def select_for_day(self, pre_n):
+        """
+        为某一天选股
+        """
+        self.fix_data_accu()
+        self.cur_date = self.s01.index.values[-pre_n]
+        print self.cur_date
+        self.select_eva_high_and_continue()
+        print self.cur_select
+
 
 if __name__ == '__main__':
-    EvaZero.select_eva_high_and_continue()
+    info_cache = DBInfoCache()
+    close_frame = info_cache.get_fix(frame_type=0)
+    percent_frame = info_cache.get_fix(frame_type=1)
+    EvaZero(run_tag='', close_frame=close_frame, percent_frame=percent_frame).select_for_day(80)
