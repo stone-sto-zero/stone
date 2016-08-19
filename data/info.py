@@ -238,10 +238,10 @@ if __name__ == '__main__':
     before = datetime.datetime.now()
     print before
 
-    # fix date 2016-08-08, 不能轻易改, 否则数据产生误差
-    # DBInfoCache().set_fix()
-    for i in range(2, 7):
-        print DBInfoCache().get_fix(frame_type=i)
+    # fix date 2016-08-18, 不能轻易改, 否则数据产生误差
+    DBInfoCache().set_fix()
+    # for i in range(0, 7):
+    #     print DBInfoCache().get_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
 

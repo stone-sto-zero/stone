@@ -409,7 +409,7 @@ class DBYahooDay(DBBase):
         """
         stock_lines = self.select_stock_all_lines(stock_name, need_open=True)
         if length:
-            stock_lines = stock_lines[length-1:]
+            stock_lines = stock_lines[length - 1:]
         # 记录第一天的价格, 并把fix设成close, rate设成1.0
         last_close = stock_lines[0][self.line_close_index]
         last_date = stock_lines[0][self.line_date_index]
@@ -434,10 +434,10 @@ class DBYahooDay(DBBase):
                 last_date = cur_date
                 continue
 
-            # 如果当天为0, 没有意义, 所以直接pass就好
+            # 如果当天为0, 没有意义, 删掉
             if close_price == 0:
-                last_close = close_price
-                last_date = cur_date
+                self.cursor.execute('delete from %s where date = "%s"' % (stock_name, cur_date))
+                self.connection.commit()
                 continue
 
             percent = close_price / last_close - 1
@@ -712,14 +712,14 @@ class DBYahooDay(DBBase):
                         # 上次出现的价格有问题, 写入percent 为0, divider为1
                         self.update_target_date_percent_and_divider(stock_name, cur_date, 0, 1)
                     else:
-                        if cur_price:
-                            last_percent = cur_price / last_close_price - 1
-                            # percent超过了10%或者-10%, 证明出现了问题, percent照常记录, divider为1
-                            if last_percent > 0.11 or last_percent < -0.11:
-                                self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 1)
-                            else:
-                                # 数据没问题,正常写入,divider为0
-                                self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 0)
+
+                        last_percent = cur_price / last_close_price - 1
+                        # percent超过了10%或者-10%, 证明出现了问题, percent照常记录, divider为1
+                        if last_percent > 0.11 or last_percent < -0.11:
+                            self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 1)
+                        else:
+                            # 数据没问题,正常写入,divider为0
+                            self.update_target_date_percent_and_divider(stock_name, cur_date, last_percent, 0)
 
                     # 保存当前日期为上次日期
                     last_date = cur_date
@@ -805,10 +805,17 @@ if __name__ == '__main__':
     # 删除重复的st名称
     # DBYahooDay().del_duplicate_lines_for_table_name()
 
+    yahoo_db = DBYahooDay()
+    yahoo_db.add_fix_value_to_all(-1)
+    yahoo_db.fill_percent_for_all_stock(-1)
+    yahoo_db.fill_point_for_all_stock(-1)
+
     # 填充fix和rate
-    yh = DBYahooDay()
-    yh.fill_percent_for_all_stock()
-    yh.fill_point_for_all_stock()
+    # yh = DBYahooDay()
+    # yh.add_fix_value_to_all(-1)
+    # yh.fill_percent_for_all_stock(-1)
+    # yh.fill_point_for_all_stock(-1)
+    # DBYahooDay().add_fix_value_to('s000633_sz', -1)
     # 删除无效日期的行
     # target_dates = ['2010-02-15', '2010-02-16','2010-02-17','2010-02-18']
     # for target_date in target_dates:
