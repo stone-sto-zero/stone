@@ -239,9 +239,9 @@ if __name__ == '__main__':
     print before
 
     # fix date 2016-08-18, 不能轻易改, 否则数据产生误差
-    DBInfoCache().set_fix()
-    # for i in range(0, 7):
-    #     print DBInfoCache().get_fix(frame_type=i)
+    # DBInfoCache().set_fix()
+    for i in range(0, 7):
+        print DBInfoCache().set_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
 

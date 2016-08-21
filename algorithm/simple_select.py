@@ -35,4 +35,5 @@ def select_up_percent(time_from, time_end, up_percent, up_time):
 
 
 if __name__ == '__main__':
-    select_up_percent('2016-08-10', '2016-08-19', 0.05, 3)
+    # 10天3up对应大热点，5天2up对应小热点
+    select_up_percent('2016-08-16', '2016-08-19', 0.05, 2)
