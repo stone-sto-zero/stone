@@ -429,6 +429,7 @@ class DBYahooDay(DBBase):
             # 如果前一天的close为0, 把数据删掉, 然后更新last close为今天的close
             if last_close == 0:
                 self.cursor.execute('delete from %s where date = "%s"' % (stock_name, last_date))
+                log_by_time('%s passed with date %s in last close' % (stock_name, cur_date))
                 self.connection.commit()
                 last_close = close_price
                 last_date = cur_date
@@ -437,6 +438,7 @@ class DBYahooDay(DBBase):
             # 如果当天为0, 没有意义, 删掉
             if close_price == 0:
                 self.cursor.execute('delete from %s where date = "%s"' % (stock_name, cur_date))
+                log_by_time('%s passed with date %s in close' % (stock_name, cur_date))
                 self.connection.commit()
                 continue
 
@@ -675,6 +677,21 @@ class DBYahooDay(DBBase):
         self.cursor.execute(
             'update %s set %s=%f where %s="%s"' % (stock_name, self.line_point, point, self.line_date, date))
 
+    def select_all_close_0(self):
+        """
+        找出所有close为0的数据
+        """
+        stock_names = self.select_all_stock_names()
+        res_list =[]
+        self.open()
+        for stock_name in stock_names:
+            if len(self.cursor.execute('select * from %s where close=0' % stock_name).fetchall()) > 0:
+                res_list.append(stock_name)
+        self.close()
+        print res_list
+        return res_list
+
+
     def fill_percent_for_all_stock(self, last_index=0):
         """
         处理percent
@@ -805,10 +822,12 @@ if __name__ == '__main__':
     # 删除重复的st名称
     # DBYahooDay().del_duplicate_lines_for_table_name()
 
-    yahoo_db = DBYahooDay()
-    yahoo_db.add_fix_value_to_all(-1)
-    yahoo_db.fill_percent_for_all_stock(-1)
-    yahoo_db.fill_point_for_all_stock(-1)
+    # yahoo_db = DBYahooDay()
+    # yahoo_db.add_fix_value_to_all(-1)
+    # yahoo_db.fill_percent_for_all_stock(-1)
+    # yahoo_db.fill_point_for_all_stock(-1)
+
+    # DBYahooDay().select_all_close_0()
 
     # 填充fix和rate
     # yh = DBYahooDay()
