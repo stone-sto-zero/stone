@@ -66,7 +66,7 @@ class DBSinaMinute(object):
     数据库的命名方式, st名称_年份, 每个数据库只有一张表, 表明和数据库的名字一致
     """
 
-    _db_file_dir = '/Users/wgx/workspace/data/minute/'
+    _db_file_dir = os.path.join(config.db_root_path, 'minute/')
 
     line_id = 'id'  # 0
     line_open = 'open'  # 1
