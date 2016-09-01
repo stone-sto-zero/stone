@@ -212,7 +212,8 @@ def test_select(select_cls, give_date):
     print len(res_series)
 
 
-def start_back_test(select_clz, run_time=500, repo_count=5, win_percent=0.1, lose_percent=0.1, max_hold_day=20,
+def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, repo_count=5, win_percent=0.1,
+                    lose_percent=0.1, max_hold_day=20,
                     need_png=False, need_write_db=True, need_log=True):
     """
     所有的过程都包含进来
@@ -228,17 +229,13 @@ def start_back_test(select_clz, run_time=500, repo_count=5, win_percent=0.1, los
     :type repo_count: int
     :param run_time: 随机执行的次数
     :type run_time: int
-    :param select_clz: 使用的选择策略
-    :type select_clz: type
+    :param select_obj: 使用的选择策略
+    :type select_obj: BaseSelect
     :param need_png: 是否画图
     :type need_png: bool
     :param need_write_db: 是否写数据库
     :type need_write_db: bool
     """
-    # 搞定数据源, 暂时只包含fix, percent, point, 后续有需要再增加
-    ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
-    pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
-    pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
     date_strs = ft.index.values
 
     # png和log的存放位置
@@ -252,8 +249,7 @@ def start_back_test(select_clz, run_time=500, repo_count=5, win_percent=0.1, los
     for i in range(0, run_time):
         # 一次随机回测开始
         time_before = datetime.datetime.now()
-        # 确定选择策略
-        select_obj = select_clz(ft, pet, pot, sft, spet, spot)
+
         """:type: BaseSelect"""
         # 产生一个标记, 唯一表示这次运行, 这个标记会用来:
         # 1. account的操作记录
@@ -384,6 +380,13 @@ if __name__ == '__main__':
     # 测试选择结果
     # test_select(SelectPointRange, '2016-08-26')
     # 开始回测
-    start_back_test(SelectPointRange, run_time=200, need_png=False)
+    # 搞定数据
 
-
+    # 搞定数据源, 暂时只包含fix, percent, point, 后续有需要再增加
+    ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
+    pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
+    pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
+    up_s01_list = [8, 10, 12, 14, 16, 18]
+    for up_s01 in up_s01_list:
+        select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=up_s01)
+        start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_png=False)
