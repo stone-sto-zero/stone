@@ -108,6 +108,7 @@ class SelectAllTable(BaseTable):
     win_time_percent = Column(Float)
     lose_time_percent = Column(Float)
     run_tag = Column(String(200))
+    up_s01 = Column(Integer)
 
 
 class SelectAll(BaseSelect):
@@ -115,10 +116,17 @@ class SelectAll(BaseSelect):
     全部可用
     """
 
-    def __init__(self, ft, pet, pot, sft, spet, spot):
+    def __init__(self, ft, pet, pot, sft, spet, spot, up_s01=20):
+        """
+        :type up_s01: int
+        """
         super(SelectAll, self).__init__(ft, pet, pot, sft, spet, spot)
+        self.up_s01 = up_s01
 
     def get_cur_select(self, cur_date):
+        if self.up_s01 > 0:
+            if self.sft.loc[:cur_date].iloc[-self.up_s01:].mean() > self.sft.loc[cur_date]:
+                return tuple()
         return self.ft.loc[cur_date].dropna(axis='index').index.values
 
     def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
@@ -127,7 +135,7 @@ class SelectAll(BaseSelect):
         session.add(
             SelectAllTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time, even_time=even_time,
                            win_time_percent=win_time_percent, lose_time_percent=lose_time_percent,
-                           run_tag=run_tag))
+                           run_tag=run_tag, up_s01=self.up_s01))
         session.commit()
 
 
@@ -146,6 +154,7 @@ class SelectPointRangeTable(BaseTable):
     point0 = Column(Float)
     point1 = Column(Float)
     last_period = Column(Integer)
+    up_s01 = Column(Integer)
 
 
 class SelectPointRange(BaseSelect):
@@ -153,12 +162,18 @@ class SelectPointRange(BaseSelect):
     选择point在指定范围的st
     """
 
-    def __init__(self, ft, pet, pot, sft, spet, spot, point_range=(4, 5), last_period=5):
+    def __init__(self, ft, pet, pot, sft, spet, spot, point_range=(4, 5), last_period=5, up_s01=20):
         super(SelectPointRange, self).__init__(ft, pet, pot, sft, spet, spot)
+        self.up_s01 = up_s01
         self.last_period = last_period
         self.point_range = point_range
 
     def get_cur_select(self, cur_date):
+
+        if self.up_s01 > 0:
+            if self.sft.loc[:cur_date].iloc[-self.up_s01:].mean() > self.sft.loc[cur_date]:
+                return tuple()
+
         avail_data = self.pot.loc[:cur_date]
         if len(avail_data) < self.last_period:
             return tuple()
@@ -171,7 +186,7 @@ class SelectPointRange(BaseSelect):
         session = self._create_session()
         session.add(SelectPointRangeTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time,
                                           even_time=even_time, win_time_percent=win_time_percent,
-                                          lose_time_percent=lose_time_percent,
+                                          lose_time_percent=lose_time_percent, up_s01=self.up_s01,
                                           run_tag=run_tag, point0=self.point_range[0], point1=self.point_range[1],
                                           last_period=self.last_period))
         session.commit()
@@ -369,6 +384,6 @@ if __name__ == '__main__':
     # 测试选择结果
     # test_select(SelectPointRange, '2016-08-26')
     # 开始回测
-    start_back_test(SelectPointRange, run_time=1000, need_png=True)
+    start_back_test(SelectPointRange, run_time=200, need_png=False)
 
 
