@@ -115,6 +115,8 @@ class HoldStock(object):
         self.cur_date = '1971-01-01 12:12:12'
         # 当前持仓的总收益, 去除已经卖出的部分, 因为已经结算到cash中了, 规则: cur_price / cost_price - 1
         self.return_percent = 0
+        # 持仓天数, 不会自动更新, 用的话, 需要外部维护这个值
+        self.hold_days = 0
 
     def __str__(self):
         return '\nstock name: %s\ncost price: %f\ncur price: %f\ncount: %d\ncur date: %s\nreturns : %f' % (
@@ -335,6 +337,19 @@ class MoneyAccount(object):
                '\ncash: %f\n returns: %f\n property: %f\n origin property: %f\nhold stocks: %s\norder list: %s\n' % (
                    self.cash, self.returns, self.property, self.origin_property, hold_stocks_str, order_list_str
                ) + '=================================='
+
+    def update_one_stock(self, stock_name, price, cur_date):
+        """
+        更新一个st, 更新完毕后,记得手动调用update_self
+        :param stock_name:
+        :type stock_name: str
+        :param price:
+        :type price: float
+        :param cur_date:
+        :type cur_date: str
+        """
+        if stock_name in self.stocks:
+            self.stocks[stock_name].update(price, cur_date)
 
     def update_with_all_stock_one_line(self, stock_line_dict):
         """

@@ -99,6 +99,10 @@ class DBInfoCache(object):
         'rage_part1', 'rate_part2', 'rage_part3', 'rate_part4', 'rage_part5', 'rate_part6',
     )
 
+    table_point_group = (
+        'point_part1', 'point_part2', 'point_part3', 'point_part4', 'point_part5', 'point_part6',
+    )
+
     def __init__(self):
         super(DBInfoCache, self).__init__()
         self.connection = None
@@ -114,6 +118,15 @@ class DBInfoCache(object):
         self.cursor.close()
         self.connection.close()
 
+    cache_type_fix = 0
+    cache_type_percent = 1
+    cache_type_open = 2
+    cache_type_close = 3
+    cache_type_high = 4
+    cache_type_low = 5
+    cache_type_fix_rate = 6
+    cache_type_point = 7
+
     def set_fix(self, frame_type=0):
         """
         设置fix的DataFrame
@@ -125,6 +138,7 @@ class DBInfoCache(object):
             4 high
             5 low
             6 fix_rate
+            7 point
         :type frame_type: int
         """
         self.open()
@@ -146,6 +160,9 @@ class DBInfoCache(object):
         elif frame_type == 6:
             table_group = self.table_fix_rate_group
             line_name = DBYahooDay.line_cur_fix_rate
+        elif frame_type == 7:
+            table_group = self.table_point_group
+            line_name = DBYahooDay.line_point
         else:
             table_group = self.table_fix_group
             line_name = DBYahooDay.line_fix
@@ -192,6 +209,8 @@ class DBInfoCache(object):
             table_group = self.table_low_group
         elif frame_type == 6:
             table_group = self.table_fix_rate_group
+        elif frame_type == 7:
+            table_group = self.table_point_group
         else:
             table_group = self.table_fix_group
 
@@ -240,7 +259,7 @@ if __name__ == '__main__':
 
     # fix date 2016-08-18, 不能轻易改, 否则数据产生误差
     # DBInfoCache().set_fix()
-    for i in range(0, 7):
+    for i in range(0, 8):
         print DBInfoCache().set_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
