@@ -162,7 +162,7 @@ class SelectPointRange(BaseSelect):
     选择point在指定范围的st
     """
 
-    def __init__(self, ft, pet, pot, sft, spet, spot, point_range=(4, 5), last_period=5, up_s01=20):
+    def __init__(self, ft, pet, pot, sft, spet, spot, point_range=(-0.6, -0.4), last_period=5, up_s01=20):
         super(SelectPointRange, self).__init__(ft, pet, pot, sft, spet, spot)
         self.up_s01 = up_s01
         self.last_period = last_period
@@ -214,9 +214,11 @@ def test_select(select_cls, give_date):
 
 def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, repo_count=5, win_percent=0.1,
                     lose_percent=0.1, max_hold_day=20,
-                    need_png=False, need_write_db=True, need_log=True):
+                    need_png=False, need_write_db=True, need_log=True, need_account_db=False):
     """
     所有的过程都包含进来
+    :param need_account_db:
+    :type need_account_db: bool
     :param need_log:
     :type need_log: bool
     :param lose_percent:
@@ -249,14 +251,15 @@ def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, rep
     for i in range(0, run_time):
         # 一次随机回测开始
         time_before = datetime.datetime.now()
-
-        """:type: BaseSelect"""
         # 产生一个标记, 唯一表示这次运行, 这个标记会用来:
         # 1. account的操作记录
         # 2. png的名称
         # 3. 回测结果中保存的一个字段
         run_tag = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S') + str(random.randint(1000, 9999))
         account = MoneyAccount(500000, run_tag, repo_count=repo_count)
+
+        if need_account_db:
+            account.open()
 
         # 记录数据
         win_count = 0
@@ -360,6 +363,9 @@ def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, rep
             select_obj.write_res_to_db(account.returns, max_dd, win_count, lose_count, even_count,
                                        float(win_count) / total_count, float(lose_count) / total_count, run_tag)
 
+        if need_account_db:
+            account.close()
+
         if need_png:
             draw_line_chart(date_strs, [sft, account_values],
                             ['s01', 'account'], default_colors[:5],
@@ -386,7 +392,12 @@ if __name__ == '__main__':
     ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
     pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
     pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
-    up_s01_list = [8, 10, 12, 14, 16, 18]
-    for up_s01 in up_s01_list:
-        select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=up_s01)
-        start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_png=False)
+    point_ranges = (
+        (-0.6, -0.4), (-0.4, -0.2), (-0.2, 0), (0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1), (1, 1.2),
+        (1.2, 1.4), (1.4, 1.6)
+    )
+    for point_range in point_ranges[8:11]:
+        select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=20,
+                                      point_range=(point_range[0], point_range[1]))
+        start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_write_db=True, need_png=False,
+                        need_log=False, need_account_db=False)
