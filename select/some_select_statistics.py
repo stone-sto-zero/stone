@@ -8,9 +8,10 @@ import datetime
 import pandas as pd
 import numpy as np
 import os
+import sys
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, String, create_engine, Integer, Float
+from sqlalchemy import Column, String, create_engine, Integer, Float, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -30,8 +31,12 @@ class BaseSelect(object):
 
     db_path = os.path.join(config.db_root_path, 'result_db.db')
 
-    def __init__(self, ft, pet, pot, sft, spet, spot):
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume):
         """
+        :type s_volume: pd.Series
+        :type volume: pd.DataFrame
+        :type close: pd.DataFrame
+        :type s_close: pd.Series
         :type spot: pd.Series
         :type spet: pd.Series
         :type sft: pd.Series
@@ -43,6 +48,10 @@ class BaseSelect(object):
         :type pot: pd.DataFrame
         """
         super(BaseSelect, self).__init__()
+        self.volume = volume
+        self.s_volume = s_volume
+        self.s_close = s_close
+        self.close = close
         self.spot = spot
         self.spet = spet
         self.sft = sft
@@ -85,11 +94,12 @@ class BaseSelect(object):
     def _get_engine(cls):
         return create_engine('sqlite:///%s' % cls.db_path)
 
-    def _create_session(self):
+    @classmethod
+    def create_session(cls):
         """
         :rtype:Session
         """
-        return sessionmaker(bind=self._get_engine())()
+        return sessionmaker(bind=cls._get_engine())()
 
     @classmethod
     def create_table(cls):
@@ -116,11 +126,11 @@ class SelectAll(BaseSelect):
     全部可用
     """
 
-    def __init__(self, ft, pet, pot, sft, spet, spot, up_s01=20):
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=20):
         """
         :type up_s01: int
         """
-        super(SelectAll, self).__init__(ft, pet, pot, sft, spet, spot)
+        super(SelectAll, self).__init__(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume)
         self.up_s01 = up_s01
 
     def get_cur_select(self, cur_date):
@@ -131,7 +141,7 @@ class SelectAll(BaseSelect):
 
     def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
                         run_tag):
-        session = self._create_session()
+        session = self.create_session()
         session.add(
             SelectAllTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time, even_time=even_time,
                            win_time_percent=win_time_percent, lose_time_percent=lose_time_percent,
@@ -162,8 +172,9 @@ class SelectPointRange(BaseSelect):
     选择point在指定范围的st
     """
 
-    def __init__(self, ft, pet, pot, sft, spet, spot, point_range=(-0.6, -0.4), last_period=5, up_s01=20):
-        super(SelectPointRange, self).__init__(ft, pet, pot, sft, spet, spot)
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, point_range=(-0.6, -0.4),
+                 last_period=5, up_s01=20):
+        super(SelectPointRange, self).__init__(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume)
         self.up_s01 = up_s01
         self.last_period = last_period
         self.point_range = point_range
@@ -183,12 +194,67 @@ class SelectPointRange(BaseSelect):
 
     def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
                         run_tag):
-        session = self._create_session()
+        session = self.create_session()
         session.add(SelectPointRangeTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time,
                                           even_time=even_time, win_time_percent=win_time_percent,
                                           lose_time_percent=lose_time_percent, up_s01=self.up_s01,
                                           run_tag=run_tag, point0=self.point_range[0], point1=self.point_range[1],
                                           last_period=self.last_period))
+        session.commit()
+
+
+class SelectAllSmallTable(BaseTable):
+    __tablename__ = 'select_all_small'
+
+    id = Column(Integer, primary_key=True)
+    returns = Column(Float)
+    maxdd = Column(Float)
+    win_time = Column(Integer)
+    lose_time = Column(Integer)
+    even_time = Column(Integer)
+    win_time_percent = Column(Float)
+    lose_time_percent = Column(Float)
+    run_tag = Column(String(200))
+    up_s01 = Column(Integer)
+
+
+class SelectAllSmall(BaseSelect):
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=20, small_percent=1):
+        """
+        :param small_percent: small的比例
+        :type small_percent: float
+        """
+        super(SelectAllSmall, self).__init__(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume)
+        self.up_s01 = up_s01
+        self.small_percent = small_percent
+        self.value_source = self.close * self.volume
+
+    def get_cur_select(self, cur_date):
+        """
+        选择close * volumn中最小的一部分
+        :param cur_date:
+        :type cur_date:
+        :rtype: tuple[str]
+        """
+        if self.up_s01 > 0:
+            if self.sft.loc[:cur_date].iloc[-self.up_s01:].mean() > self.sft.loc[cur_date]:
+                return tuple()
+
+        # 排序, 开始选择
+        stock_names = self.value_source.columns.values
+        sorted_stock_names = sorted(stock_names,
+                                    key=lambda x: self.value_source.loc[cur_date, x] if not np.isnan(
+                                        self.value_source.loc[cur_date, x]) and self.volume.loc[
+                                                                                    cur_date, x] > 0 else sys.maxint)
+        return tuple(sorted_stock_names[:int(len(sorted_stock_names) * self.small_percent)])
+
+    def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
+                        run_tag):
+        session = self.create_session()
+        session.add(SelectAllSmallTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time,
+                                        even_time=even_time, win_time_percent=win_time_percent,
+                                        lose_time_percent=lose_time, run_tag=run_tag,
+                                        up_s01=self.up_s01))
         session.commit()
 
 
@@ -202,12 +268,27 @@ def test_select(select_cls, give_date):
     """
     # 搞定数据源, 暂时只包含fix, percent, point, 后续有需要再增加
     ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
+    # stock_names = ft.columns.values
+    # print stock_names
+    # print ft.loc[give_date, stock_names[3]]
+    # sorted_stock_names = sorted(stock_names,
+    #                             key=lambda x: ft.loc[give_date, x] if not np.isnan(
+    #                                 ft.loc[give_date, x]) else sys.maxint)
+    # print sorted_stock_names
     pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
     pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
+    close, s_close = resolve_dataframe(frame_type=DBInfoCache.cache_type_close)
+    volume, s_volume = resolve_dataframe(frame_type=DBInfoCache.cache_type_volume)
 
-    select_obj = select_cls(ft, pet, pot, sft, spet, spot)
+    select_obj = select_cls(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=-1)
 
     res_series = select_obj.get_cur_select(give_date)
+    print res_series.index('s600171_ss')
+    print res_series.index('s600119_ss')
+    print res_series.index('s000002_sz')
+    print res_series.index('s000096_sz')
+    print res_series.index('s600619_ss')
+
     print res_series
     print len(res_series)
 
@@ -384,20 +465,37 @@ if __name__ == '__main__':
     # 建表
     # BaseSelect.create_table()
     # 测试选择结果
-    # test_select(SelectPointRange, '2016-08-26')
+    test_select(SelectAllSmall, '2016-09-09')
     # 开始回测
     # 搞定数据
 
     # 搞定数据源, 暂时只包含fix, percent, point, 后续有需要再增加
-    ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
-    pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
-    pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
-    point_ranges = (
-        (-0.6, -0.4), (-0.4, -0.2), (-0.2, 0), (0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1), (1, 1.2),
-        (1.2, 1.4), (1.4, 1.6)
-    )
-    for point_range in point_ranges[8:11]:
-        select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=20,
-                                      point_range=(point_range[0], point_range[1]))
-        start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_write_db=True, need_png=False,
-                        need_log=False, need_account_db=False)
+    # ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
+    # pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
+    # pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
+
+    # 参数范围
+    # source_range = range(-100, 0, 2)
+    # res_list = [(float(i) / 100, float(i) / 100 + 0.02) for i in source_range]
+
+    # 回测
+    # for point_range in res_list[40:50]:
+    #     print point_range
+    #     select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=20,
+    #                                   point_range=(point_range[0], point_range[1]))
+    #     start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_write_db=True, need_png=False,
+    #                     need_log=False, need_account_db=False)
+
+    # returns avg写入excel
+    # session = SelectPointRange.create_session()
+    # res_index = list()
+    # res_values = list()
+    # for point_range in res_list:
+    #     res_index.append(point_range[0])
+    #     res_values.append(
+    #         session.query(func.avg(SelectPointRangeTable.returns)).filter_by(point0=point_range[0],
+    #                                                                          point1=point_range[
+    #                                                                              1]).first()[0])
+    # res_df = pd.DataFrame(res_values, index=res_index)
+    # print res_df
+    # res_df.to_excel(os.path.join(config.log_root_path, 'point_0.02_-1.xlsx'))

@@ -341,9 +341,9 @@ if __name__ == '__main__':
     # yahoo = YahooDownload()
     # yahoo.download_target_date_day_lines('2016-7-20')
 
-    yh = DBYahooDay()
-    yh.fill_percent_for_all_stock(-2)
-    yh.fill_point_for_all_stock(-2)
+    # yh = DBYahooDay()
+    # yh.fill_percent_for_all_stock(-2)
+    # yh.fill_point_for_all_stock(-2)
 
     # sina_down = SinaDownload()
     # sina_down.download_one_minute()
@@ -367,11 +367,11 @@ if __name__ == '__main__':
     # yahoo.download_target_range_names(range(len(yahoo.stock_names) - 1, len(yahoo.stock_names)))
 
     # 首次下载
-    # ThreadRunner(range(0, 100)).start()
-    # ThreadRunner(range(100, 200)).start()
-    # ThreadRunner(range(200, 300)).start()
-    # ThreadRunner(range(300, 400)).start()
-    # ThreadRunner(range(400, 500)).start()
+    ThreadRunner(range(0, 100)).start()
+    ThreadRunner(range(100, 200)).start()
+    ThreadRunner(range(200, 300)).start()
+    ThreadRunner(range(300, 400)).start()
+    ThreadRunner(range(400, 500)).start()
     # ThreadRunner(range(500, 600)).start()
     # ThreadRunner(range(600, 700)).start()
     # ThreadRunner(range(700, 800)).start()

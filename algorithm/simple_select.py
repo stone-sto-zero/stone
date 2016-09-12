@@ -78,4 +78,4 @@ if __name__ == '__main__':
     # 10天3up对应大热点，5天2up对应小热点
     # select_up_percent('2016-08-16', '2016-08-19', 0.05, 2)
     # 找出两天上涨超过0.05的st
-    select_up_percent_continuous('2016-08-19', '2016-08-25', 0.06, 2, 0.065, True)
+    select_up_percent_continuous('2016-08-31', '2016-09-06', 0.04, 2, 0.065, True)

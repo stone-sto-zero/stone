@@ -502,6 +502,7 @@ class DBYahooDay(DBBase):
         想保存表名称的表中插入一行
         :param name: 插入的st名称
         """
+        print 'add stock name : ' + name
         self.insert_into_table(self.table_stock_name, (self.stock_name_name,), ("'%s'" % name,))
         self.connection.commit()
 
@@ -510,6 +511,7 @@ class DBYahooDay(DBBase):
         创建指定的st表
         :param stock_name: 表名
         """
+        print 'cr stock table : ' + stock_name
         table_columns = (
             self.line_id + ' integer primary key',
             self.line_date + ' varchar(20)',
