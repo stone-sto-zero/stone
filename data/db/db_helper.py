@@ -488,6 +488,15 @@ class DBYahooDay(DBBase):
         self.close()
         return res
 
+    def del_all_volume_and_open_is_0(self):
+        stock_names = self.select_all_stock_names()
+        self.open()
+        for stock_name in stock_names:
+            print stock_name
+            self.cursor.execute('delete from %s where open=0 and volume=0' % stock_name)
+            self.connection.commit()
+        self.close()
+
     def create_stock_name_table(self):
         """
         创建包含股票名称的表, 后续可以增加一些备注字段, 比如首先, 是否可用, 连续可用日期等
@@ -557,6 +566,14 @@ class DBYahooDay(DBBase):
         res = self.cursor.execute('select %s from %s where %s="%s"' % (
             self.stock_name_name, self.table_stock_name, self.stock_name_name, stock_name))
         return not len(res.fetchall()) == 0
+
+    def select_all_volume_with0(self):
+        stock_names = self.select_all_stock_names()
+        self.open()
+        for stock_name in stock_names:
+            if len(self.cursor.execute('select * from %s where volume == 0' % stock_name).fetchall()) > 0:
+                print stock_name
+        self.close()
 
     def select_stock_all_lines(self, stock_name, order=0, need_open=False):
         """
@@ -818,6 +835,9 @@ class DBYahooDay(DBBase):
 
 if __name__ == '__main__':
     pass
+
+    # 打印所有包含volume为0的st
+    DBYahooDay().select_all_volume_with0()
 
     # 删除重复的st行
     # DBYahooDay().del_duplicate_lines_for_stock_days()
