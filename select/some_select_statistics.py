@@ -262,10 +262,10 @@ class SelectAllSmall(BaseSelect):
         cur_per_line = self.pet.loc[cur_date]
         cur_over_stock_names = cur_per_line[cur_per_line > 0.095]
 
-        res =  [stock_name for stock_name in
-                sorted_stock_names[int(len(sorted_stock_names) * self.small_range[0]): int(len(sorted_stock_names) *
-                                                                                           self.small_range[1])] if
-                stock_name not in cur_over_stock_names]
+        res = [stock_name for stock_name in
+               sorted_stock_names[int(len(sorted_stock_names) * self.small_range[0]): int(len(sorted_stock_names) *
+                                                                                          self.small_range[1])] if
+               stock_name not in cur_over_stock_names]
 
         # for stock_name in res:
         #     print '------'
@@ -284,6 +284,47 @@ class SelectAllSmall(BaseSelect):
                                         lose_time_percent=lose_time, run_tag=run_tag,
                                         up_s01=self.up_s01, small_range0=self.small_range[0],
                                         small_range1=self.small_range[1]))
+        session.commit()
+
+
+class SelectPercentRangeTable(BaseTable):
+    __tablename__ = 'select_per_range'
+
+    id = Column(Integer, primary_key=True)
+    returns = Column(Float)
+    maxdd = Column(Float)
+    win_time = Column(Integer)
+    lose_time = Column(Integer)
+    even_time = Column(Integer)
+    win_time_percent = Column(Float)
+    lose_time_percent = Column(Float)
+    run_tag = Column(String(200))
+    up_s01 = Column(Integer)
+    per_range0 = Column(Float)
+    per_range1 = Column(Float)
+
+
+class SelectPercentRange(BaseSelect):
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=-1,
+                 per_range=(-0.03, 0.03)):
+        super(SelectPercentRange, self).__init__(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume)
+        self.up_s01 = up_s01
+        self.per_range = per_range
+
+    def get_cur_select(self, cur_date):
+        if self.up_s01 > 0:
+            if self.sft.loc[:cur_date].iloc[-self.up_s01:].mean() > self.sft.loc[cur_date]:
+                return tuple()
+        return super(SelectPercentRange, self).get_cur_select(cur_date)
+
+    def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
+                        run_tag):
+        session = self.create_session()
+        session.add(SelectPercentRangeTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time,
+                                            even_time=even_time, win_time_percent=win_time_percent,
+                                            lose_time_percent=lose_time, run_tag=run_tag,
+                                            up_s01=self.up_s01, per_range0=self.per_range[0],
+                                            per_range1=self.per_range[1]))
         session.commit()
 
 
