@@ -316,7 +316,8 @@ class SelectPercentRange(BaseSelect):
             if self.sft.loc[:cur_date].iloc[-self.up_s01:].mean() > self.sft.loc[cur_date]:
                 return tuple()
 
-        return super(SelectPercentRange, self).get_cur_select(cur_date)
+        cur_line = self.pet.loc[cur_date]
+        return cur_line[cur_line > self.per_range[0]][cur_line < self.per_range[1]].columns.values
 
     def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
                         run_tag):
