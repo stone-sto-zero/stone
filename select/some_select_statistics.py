@@ -216,18 +216,22 @@ class SelectAllSmallTable(BaseTable):
     lose_time_percent = Column(Float)
     run_tag = Column(String(200))
     up_s01 = Column(Integer)
+    small_range0 = Column(Float)
+    small_range1 = Column(Float)
 
 
 class SelectAllSmall(BaseSelect):
-    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=20, small_percent=1):
+    def __init__(self, ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=20,
+                 small_range=(0, 0.05)):
         """
         :param small_percent: small的比例
         :type small_percent: float
         """
         super(SelectAllSmall, self).__init__(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume)
         self.up_s01 = up_s01
-        self.small_percent = small_percent
+        self.small_range = small_range
         self.value_source = self.close * self.volume
+        """:type: pd.DataFrame"""
 
     def get_cur_select(self, cur_date):
         """
@@ -241,12 +245,36 @@ class SelectAllSmall(BaseSelect):
                 return tuple()
 
         # 排序, 开始选择
-        stock_names = self.value_source.columns.values
-        sorted_stock_names = sorted(stock_names,
-                                    key=lambda x: self.value_source.loc[cur_date, x] if not np.isnan(
-                                        self.value_source.loc[cur_date, x]) and self.volume.loc[
-                                                                                    cur_date, x] > 0 else sys.maxint)
-        return tuple(sorted_stock_names[:int(len(sorted_stock_names) * self.small_percent)])
+        # stock_names = self.value_source.columns.values
+        # sorted_stock_names = sorted(stock_names,
+        #                             key=lambda x: self.value_source.loc[cur_date, x] if not np.isnan(
+        #                                 self.value_source.loc[cur_date, x]) and self.volume.loc[
+        #                                                                             cur_date, x] > 0 else sys.maxint)
+
+
+        #
+        # return sorted_stock_names[int(len(sorted_stock_names) * self.small_range[0]):int(
+        #     len(sorted_stock_names) * self.small_range[1])]
+
+        cur_stock_line = self.value_source.loc[cur_date].dropna()
+        cur_stock_line = cur_stock_line[cur_stock_line > 0]
+        sorted_stock_names = cur_stock_line.sort_values().index.values
+        cur_per_line = self.pet.loc[cur_date]
+        cur_over_stock_names = cur_per_line[cur_per_line > 0.095]
+
+        res =  [stock_name for stock_name in
+                sorted_stock_names[int(len(sorted_stock_names) * self.small_range[0]): int(len(sorted_stock_names) *
+                                                                                           self.small_range[1])] if
+                stock_name not in cur_over_stock_names]
+
+        # for stock_name in res:
+        #     print '------'
+        #     print stock_name
+        #     print self.close.loc[cur_date, stock_name]
+        #     print self.volume.loc[cur_date, stock_name]
+        #     print self.value_source.loc[cur_date, stock_name]
+
+        return res
 
     def write_res_to_db(self, returns, maxdd, win_time, lose_time, even_time, win_time_percent, lose_time_percent,
                         run_tag):
@@ -254,7 +282,8 @@ class SelectAllSmall(BaseSelect):
         session.add(SelectAllSmallTable(returns=returns, maxdd=maxdd, win_time=win_time, lose_time=lose_time,
                                         even_time=even_time, win_time_percent=win_time_percent,
                                         lose_time_percent=lose_time, run_tag=run_tag,
-                                        up_s01=self.up_s01))
+                                        up_s01=self.up_s01, small_range0=self.small_range[0],
+                                        small_range1=self.small_range[1]))
         session.commit()
 
 
@@ -283,11 +312,6 @@ def test_select(select_cls, give_date):
     select_obj = select_cls(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume, up_s01=-1)
 
     res_series = select_obj.get_cur_select(give_date)
-    print res_series.index('s600171_ss')
-    print res_series.index('s600119_ss')
-    print res_series.index('s000002_sz')
-    print res_series.index('s000096_sz')
-    print res_series.index('s600619_ss')
 
     print res_series
     print len(res_series)
@@ -332,6 +356,7 @@ def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, rep
     for i in range(0, run_time):
         # 一次随机回测开始
         time_before = datetime.datetime.now()
+        print time_before
         # 产生一个标记, 唯一表示这次运行, 这个标记会用来:
         # 1. account的操作记录
         # 2. png的名称
@@ -367,6 +392,7 @@ def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, rep
 
             # 选择, 并采用随机的方式过滤
             selected_stocks = select_obj.get_cur_select(date_str)
+
             if len(selected_stocks) > repo_count:
                 selected_stocks = random.sample(selected_stocks, repo_count)
 
@@ -439,6 +465,8 @@ def start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=500, rep
                 log_with_filename(run_tag, 'k120 :      ' + str(k120_values[-1]))
                 log_with_filename(run_tag, 'k250 :      ' + str(k250_values[-1]))
 
+        print 'time cost : ' + str(datetime.datetime.now() - time_before)
+
         if need_write_db:
             total_count = float(win_count + lose_count + even_count)
             select_obj.write_res_to_db(account.returns, max_dd, win_count, lose_count, even_count,
@@ -465,7 +493,7 @@ if __name__ == '__main__':
     # 建表
     # BaseSelect.create_table()
     # 测试选择结果
-    test_select(SelectAllSmall, '2016-09-09')
+    test_select(SelectAllSmall, '2016-09-14')
     # 开始回测
     # 搞定数据
 
@@ -473,18 +501,20 @@ if __name__ == '__main__':
     # ft, sft = resolve_dataframe(frame_type=DBInfoCache.cache_type_fix)
     # pet, spet = resolve_dataframe(frame_type=DBInfoCache.cache_type_percent)
     # pot, spot = resolve_dataframe(frame_type=DBInfoCache.cache_type_point)
-
-    # 参数范围
-    # source_range = range(-100, 0, 2)
-    # res_list = [(float(i) / 100, float(i) / 100 + 0.02) for i in source_range]
-
-    # 回测
-    # for point_range in res_list[40:50]:
-    #     print point_range
-    #     select_obj = SelectPointRange(ft, pet, pot, sft, spet, spot, up_s01=20,
-    #                                   point_range=(point_range[0], point_range[1]))
-    #     start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_write_db=True, need_png=False,
-    #                     need_log=False, need_account_db=False)
+    # close, s_close = resolve_dataframe(frame_type=DBInfoCache.cache_type_close)
+    # volume, s_volume = resolve_dataframe(frame_type=DBInfoCache.cache_type_volume)
+    #
+    # # 参数范围
+    # source_range = range(0, 10, 1)
+    # res_list = [(float(i) / 100, float(i) / 100 + 0.01) for i in source_range]
+    #
+    # # 回测
+    # for small_range in res_list[0:1]:
+    #     print small_range
+    #     select_obj = SelectAllSmall(ft, pet, pot, sft, spet, spot, close, s_close, volume, s_volume,
+    #                                 small_range=(small_range[0], small_range[1]))
+    #     start_back_test(select_obj, ft, sft, pet, spet, pot, spot, run_time=400, need_write_db=True, need_png=True,
+    #                     need_log=True, need_account_db=True)
 
     # returns avg写入excel
     # session = SelectPointRange.create_session()

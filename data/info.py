@@ -271,7 +271,8 @@ if __name__ == '__main__':
     # fix date 2016-08-18, 不能轻易改, 否则数据产生误差
     # DBInfoCache().set_fix()
     for i in range(0, 9):
-        print DBInfoCache().set_fix(frame_type=i)
+        print i
+        DBInfoCache().set_fix(frame_type=i)
     after = datetime.datetime.now()
     print after
 
